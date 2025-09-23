@@ -260,6 +260,9 @@ char* getCorrelation(char* varName, char** resultantAsm){
                 append(resultantAsm, "\nmov ");
                 append(resultantAsm, next);
                 append(resultantAsm, ", ");
+                if (index[0] == '['){
+                    append(resultantAsm, "dword ");
+                }
                 append(resultantAsm, index);
                 appendString(stackNameList, "__POPCORN_RESERVED__");
                 append(resultantAsm, "\npush "); // have to get reg {next} outta stack, but first push it?? (FIXED POSSIBLY)
@@ -267,6 +270,9 @@ char* getCorrelation(char* varName, char** resultantAsm){
                 append(&final, "[esp]"); 
             } else {
                 append(resultantAsm, "\npush eax\nmov eax, ");
+                if (index[0] == '['){
+                    append(resultantAsm, "dword ");
+                }
                 append(resultantAsm, index);
                 int nextStack = (stackNameList->size * 4) - 4;
                 char str[30];
@@ -398,7 +404,7 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
     }
 
     switch (getEnum(currentCommand)){
-        case MODE:
+        case MODE: {
             if (strcmp(arguments[0], "32BIT_PROTECTED") == 0){
                 append(&resultantAsm, "\n\
                 org 0x7E00\n\
@@ -491,7 +497,8 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
                 \n");
                 break;
             }
-        case INT:
+        }
+        case INT: {// IS DWORD DECLARATION NECESSARY?????????????????????? (it is)
             appendString(intNameList, arguments[0]);
             char* next = getNextEmptyGeneralRegister();
             char* newValue = getCorrelation(arguments[1], &resultantAsm);
@@ -500,6 +507,9 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
                 append(&resultantAsm, "\nmov ");
                 append(&resultantAsm, next);
                 append(&resultantAsm, ", ");
+                if (newValue[0] == '['){
+                    append(&resultantAsm, "dword ");
+                }
                 append(&resultantAsm, newValue);
                 generalRegisters[nextNum] = arguments[0];
             } else {
@@ -511,9 +521,15 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
                         append(&resultantAsm, "\nmovd ");
                         append(&resultantAsm, next);
                         append(&resultantAsm, ", ");
+                        if (newValue[0] == '['){
+                            append(&resultantAsm, "dword ");
+                        }
                         append(&resultantAsm, newValue);
                     } else {
                         append(&resultantAsm, "\npush eax\nmov eax, ");
+                        if (newValue[0] == '['){
+                            append(&resultantAsm, "dword ");
+                        }
                         append(&resultantAsm, newValue);
                         append(&resultantAsm, "\nmovd ");
                         append(&resultantAsm, next);
@@ -522,6 +538,9 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
                 } else {
                     // add to stack
                     append(&resultantAsm, "\npush ");
+                    if (newValue[0] == '['){
+                        append(&resultantAsm, "dword ");
+                    }
                     append(&resultantAsm, newValue);
                     appendString(stackNameList, arguments[0]);
                 }
@@ -532,47 +551,119 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
                 free(newValue);
             }
 
+            break;
+        }
+        case FLOAT: {
+            appendString(floatNameList, arguments[0]);
+            char* next = getNextEmptyFloatRegister();
+            char* newValue = getCorrelation(arguments[1], &resultantAsm);
 
-        case FLOAT:
-        case PRIME: 
-        case ADD:
-        case SUB:
-        case MUL:
-        case DIV:
-        case ADDF:
-        case SUBF:
-        case MULF:
-        case DIVF:
-        case FTI:
-        case ITF:
-        case VEC: // max length 32 
-        case VTA:
-        case ATV: 
-        case UVEC:
-        case VADD:
-        case VSUB:
-        case VMUL:
-        case VDIV:
-        case VADDF:
-        case VSUBF:
-        case VMULF:
-        case VDIVF:
-        case ARRAY:
-        case INJECT: // inject MULTIPLE values into stack (EDIT THIS LATER FOR STRING EDITING TOO)
-        case CHAR: // treat like integer, literally just a byte
-        case STRING:
-        case EDIT:
-        case PACK:
-        case CALL:
-        case IF:
-        case WHILE:
-        case RECT:
-        case PAUSE:
-        case ASMPACK:
-        case ASMCALL:
-        case INF:
-        case RANDOM:
-        case CMD_NOT_RECOGNIZED:
+            if (next[0] != 'n'){
+                int nextNum = getNextEmptyGeneralRegisterNum();
+                floatRegisters[nextNum] = arguments[0];
+                if (arguments[1][0] == '$'){
+                    if (newValue[0] == 'e'){
+                        append(&resultantAsm, "\nmovd ");
+                        append(&resultantAsm, next);
+                        append(&resultantAsm, ", ");
+                        append(&resultantAsm, newValue);
+                    }  else if (newValue[0] == 'x'){
+                        append(&resultantAsm, "\nmovss ");
+                        append(&resultantAsm, next);
+                        append(&resultantAsm, ", ");
+                        append(&resultantAsm, newValue);
+                    } else if (newValue[0] == '['){
+                        append(&resultantAsm, "\nmovss ");
+                        append(&resultantAsm, next);
+                        append(&resultantAsm, ", dword ");
+                        append(&resultantAsm, newValue);
+                    }
+                } else {
+                    append(&resultantAsm, "\npush eax\nmov eax, __float32__(");
+                    append(&resultantAsm, newValue);
+                    append(&resultantAsm, ")\nmovd ");
+                    append(&resultantAsm, next);
+                    append(&resultantAsm, ", eax\npop eax");
+                }
+            } else {
+                char* next = getNextEmptyGeneralRegister();
+                if (next[0] != 'n'){
+                    int nextNum = getNextEmptyGeneralRegisterNum();
+                    append(&resultantAsm, "\nmov ");
+                    append(&resultantAsm, next);
+                    append(&resultantAsm, ", ");
+                    if (newValue[0] == '['){
+                        append(&resultantAsm, "dword ");
+                    }
+                    if (arguments[1][0] == '$'){
+                        append(&resultantAsm, newValue);
+                    } else {
+                        append(&resultantAsm, "__float32__(");
+                        append(&resultantAsm, newValue);
+                        append(&resultantAsm, ")");
+                    }
+                    generalRegisters[nextNum] = arguments[0];
+                } else {
+                    append(&resultantAsm, "\npush ");
+                    if (newValue[0] == '['){
+                        append(&resultantAsm, "dword ");
+                    }
+                    if (arguments[1][0] == '$'){
+                        append(&resultantAsm, newValue);
+                    } else {
+                        append(&resultantAsm, "__float32__(");
+                        append(&resultantAsm, newValue);
+                        append(&resultantAsm, ")");
+                    }
+                    appendString(stackNameList, arguments[0]);
+                }
+            }
+
+            if (newValue[0] == '['){
+                free(newValue);
+            }
+
+            break;
+        }
+        case PRIME: {break;}
+        case ADD: {break;}
+        case SUB: {break;}
+        case MUL: {break;}
+        case DIV: {break;}
+        case ADDF: {break;}
+        case SUBF: {break;}
+        case MULF: {break;}
+        case DIVF: {break;}
+        case FTI: {break;}
+        case ITF: {break;}
+        case VEC: {break;} // max length 32 
+        case VTA: {break;}
+        case ATV: {break;}
+        case UVEC: {break;}
+        case VADD: {break;}
+        case VSUB: {break;}
+        case VMUL: {break;}
+        case VDIV: {break;}
+        case VADDF: {break;}
+        case VSUBF: {break;}
+        case VMULF: {break;}
+        case VDIVF: {break;}
+        case ARRAY: {break;}
+        case INJECT: {break;} // inject MULTIPLE values into stack (EDIT THIS LATER FOR STRING EDITING TOO)
+        case CHAR: {break;} // treat like integer, literally just a byte
+        case STRING: {break;}
+        case EDIT: {break;}
+        case PACK: {break;}
+        case CALL: {break;}
+        case IF: {break;}
+        case WHILE: {break;}
+        case RECT: {break;}
+        case PAUSE: {break;}
+        case ASMPACK: {break;}
+        case ASMCALL: {break;}
+        case INF: {break;}
+        case RANDOM: {break;}
+        case CMD_NOT_RECOGNIZED: {break;}
             return "error";
     }
 
