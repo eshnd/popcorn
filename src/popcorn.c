@@ -185,6 +185,17 @@ char* getNextEmptyGeneralRegister(){
     return "none";
 }
 
+int getNextEmptyGeneralRegisterNum(){
+    for (int i = 0; i < 6; i++){
+        if (strcmp(generalRegisters[i], "none") == 0){
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+
 char* getNextEmptyFloatRegister(){
     for (int i = 0; i < 8; i++){
         if (strcmp(floatRegisters[i], "none") == 0){
@@ -209,6 +220,15 @@ char* getNextEmptyFloatRegister(){
         }
     }
     return "none";
+}
+
+int getNextEmptyFloatRegisterNum(){
+    for (int i = 0; i < 8; i++){
+        if (strcmp(floatRegisters[i], "none") == 0){
+            return i;
+        }
+    }
+    return -1;
 }
 
 char* getCorrelation(char* varName, char** resultantAsm){
@@ -241,21 +261,19 @@ char* getCorrelation(char* varName, char** resultantAsm){
                 append(resultantAsm, next);
                 append(resultantAsm, ", ");
                 append(resultantAsm, index);
-                int nextStack = stackNameList->size * 4;
-                char str[30];
-                sprintf(str, "mov [esp + %d], %s\npop %s", nextStack, next, next);
-                append(resultantAsm, str);
-                sprintf(str, "[esp + %d]", nextStack);
-                append(&final, str); 
+                appendString(stackNameList, "__POPCORN_RESERVED__");
+                append(resultantAsm, "\npush "); // have to get reg {next} outta stack, but first push it?? (FIXED POSSIBLY)
+                append(resultantAsm, next);
+                append(&final, "[esp]"); 
             } else {
                 append(resultantAsm, "\npush eax\nmov eax, ");
                 append(resultantAsm, index);
-                int nextStack = stackNameList->size * 4;
+                int nextStack = (stackNameList->size * 4) - 4;
                 char str[30];
-                sprintf(str, "mov [esp + %d], eax\npop eax", nextStack);
+                sprintf(str, "\npush eax\nmov eax, [esp + %d]", nextStack); // EDIT BECAUSE STACK ISNT LIKE THIS (FIXED ... PROBABLY)
+                appendString(stackNameList, "__POPCORN_RESERVED__");
                 append(resultantAsm, str);
-                sprintf(str, "[esp + %d]", nextStack);
-                append(&final, str); 
+                append(&final, "[esp]"); 
             }
             free(index);
         } else{
@@ -474,6 +492,47 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
                 break;
             }
         case INT:
+            appendString(intNameList, arguments[0]);
+            char* next = getNextEmptyGeneralRegister();
+            char* newValue = getCorrelation(arguments[1], &resultantAsm);
+            if (next[0] != 'n'){ // if there is a gen reg avaliable
+                int nextNum = getNextEmptyGeneralRegisterNum();
+                append(&resultantAsm, "\nmov ");
+                append(&resultantAsm, next);
+                append(&resultantAsm, ", ");
+                append(&resultantAsm, newValue);
+                generalRegisters[nextNum] = arguments[0];
+            } else {
+                char* next = getNextEmptyFloatRegister();
+                if (next[0] != 'n'){
+                    int nextNum = getNextEmptyGeneralRegisterNum();
+                    floatRegisters[nextNum] = arguments[0];
+                    if (arguments[1][0] == '$'){
+                        append(&resultantAsm, "\nmovd ");
+                        append(&resultantAsm, next);
+                        append(&resultantAsm, ", ");
+                        append(&resultantAsm, newValue);
+                    } else {
+                        append(&resultantAsm, "\npush eax\nmov eax, ");
+                        append(&resultantAsm, newValue);
+                        append(&resultantAsm, "\nmovd ");
+                        append(&resultantAsm, next);
+                        append(&resultantAsm, ", eax\npop eax");
+                    }
+                } else {
+                    // add to stack
+                    append(&resultantAsm, "\npush ");
+                    append(&resultantAsm, newValue);
+                    appendString(stackNameList, arguments[0]);
+                }
+            }
+
+
+            if (newValue[0] == '['){
+                free(newValue);
+            }
+
+
         case FLOAT:
         case PRIME: 
         case ADD:
