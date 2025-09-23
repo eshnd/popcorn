@@ -445,7 +445,7 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
         case VMULF:
         case VDIVF:
         case ARRAY:
-        case INJECT: // inject into stack
+        case INJECT: // inject MULTIPLE values into stack (EDIT THIS LATER FOR STRING EDITING TOO)
         case CHAR: // treat like integer, literally just a byte
         case STRING:
         case EDIT:
