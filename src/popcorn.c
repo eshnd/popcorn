@@ -99,7 +99,6 @@ typedef enum {
     VDIVF,
     ARRAY,
     EDIT,
-    AEDIT,
     PACK,
     CALL,
     IF,
@@ -111,6 +110,9 @@ typedef enum {
     INF,
     RANDOM,
     INJECT,
+    ATV,
+    STRING,
+    CHAR,
     CMD_NOT_RECOGNIZED
 } command;
 
@@ -142,7 +144,6 @@ command getEnum(char *cmd) {
     if (strcmp(cmd, "vdivf") == 0) return VDIVF;
     if (strcmp(cmd, "array") == 0) return ARRAY;
     if (strcmp(cmd, "edit") == 0) return EDIT;
-    if (strcmp(cmd, "aedit") == 0) return AEDIT;
     if (strcmp(cmd, "pack") == 0) return PACK;
     if (strcmp(cmd, "call") == 0) return CALL;
     if (strcmp(cmd, "if") == 0) return IF;
@@ -154,6 +155,9 @@ command getEnum(char *cmd) {
     if (strcmp(cmd, "inf") == 0) return INF;
     if (strcmp(cmd, "rand") == 0) return RANDOM;
     if (strcmp(cmd, "inject") == 0) return INJECT;
+    if (strcmp(cmd, "a->v") == 0) return ATV;
+    if (strcmp(cmd, "string") == 0) return STRING;
+    if (strcmp(cmd, "char") == 0) return CHAR;
     return CMD_NOT_RECOGNIZED;
 }
 
@@ -418,7 +422,6 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
         case INT:
         case FLOAT:
         case PRIME:
-        case INJECT: // inject into stack
         case ADD:
         case SUB:
         case MUL:
@@ -429,8 +432,9 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
         case DIVF:
         case FTI:
         case ITF:
-        case VEC:
+        case VEC: // max length 32 
         case VTA:
+        case ATV: 
         case UVEC:
         case VADD:
         case VSUB:
@@ -441,8 +445,10 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
         case VMULF:
         case VDIVF:
         case ARRAY:
+        case INJECT: // inject into stack
+        case CHAR: // treat like integer, literally just a byte
+        case STRING:
         case EDIT:
-        case AEDIT:
         case PACK:
         case CALL:
         case IF:
