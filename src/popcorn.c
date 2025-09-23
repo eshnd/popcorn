@@ -110,6 +110,7 @@ typedef enum {
     ASMCALL,
     INF,
     RANDOM,
+    INJECT,
     CMD_NOT_RECOGNIZED
 } command;
 
@@ -152,6 +153,7 @@ command getEnum(char *cmd) {
     if (strcmp(cmd, "asmcall") == 0) return ASMCALL;
     if (strcmp(cmd, "inf") == 0) return INF;
     if (strcmp(cmd, "rand") == 0) return RANDOM;
+    if (strcmp(cmd, "inject") == 0) return INJECT;
     return CMD_NOT_RECOGNIZED;
 }
 
@@ -416,6 +418,7 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
         case INT:
         case FLOAT:
         case PRIME:
+        case INJECT:
         case ADD:
         case SUB:
         case MUL:
@@ -467,6 +470,9 @@ int main(int argc, char* argv[]){
     stackNameList = createStringList(0);
     intNameList = createStringList(0);
     floatNameList = createStringList(0);
+
+    // get file, store in string, and call parser
+
     freeStringList(stackNameList);
     freeStringList(intNameList);
     freeStringList(floatNameList);
