@@ -418,7 +418,7 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
         case INT:
         case FLOAT:
         case PRIME:
-        case INJECT:
+        case INJECT: // inject into stack
         case ADD:
         case SUB:
         case MUL:
