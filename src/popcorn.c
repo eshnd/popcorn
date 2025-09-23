@@ -4,9 +4,9 @@
 #include <stdbool.h>
 #include <time.h>
 
-char* generalRegisters[] = {"", "", "", "", "", ""};
+char* generalRegisters[] = {"none", "none", "none", "none", "none", "none"};
 // eax, ebx, ecx, edx, edi, esi
-char* floatRegisters[] = {"", "", "", "", "", "", "", ""};
+char* floatRegisters[] = {"none", "none", "none", "none", "none", "none", "none", "none"};
 bool vecRegisters[] = {false, false, false, false, false, false, false, false};
 // xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7
 
@@ -15,7 +15,7 @@ void append(char **dest, const char *src) { // helper function for strings
     strcat(*dest, src);
 }
 
-void append_char(char **str, char c) {
+void appendChar(char **str, char c) {
     size_t len = strlen(*str);
     *str = realloc(*str, len + 2); 
     (*str)[len] = c;
@@ -164,7 +164,7 @@ command getEnum(char *cmd) {
 
 char* getNextEmptyGeneralRegister(){
     for (int i = 0; i < 6; i++){
-        if (strcmp(generalRegisters[i], "") == 0){
+        if (strcmp(generalRegisters[i], "none") == 0){
             switch (i){
                 case 0:
                     return "eax";
@@ -187,7 +187,7 @@ char* getNextEmptyGeneralRegister(){
 
 char* getNextEmptyFloatRegister(){
     for (int i = 0; i < 8; i++){
-        if (strcmp(floatRegisters[i], "") == 0){
+        if (strcmp(floatRegisters[i], "none") == 0){
             switch (i){
                 case 0:
                     return "xmm0";
@@ -211,7 +211,62 @@ char* getNextEmptyFloatRegister(){
     return "none";
 }
 
-char* getCorrelation(char* varName){
+char* getCorrelation(char* varName, char** resultantAsm){
+    if (varName[0] != '$'){
+        return varName;
+    }
+
+    char* arrayIndex = malloc(1);
+    arrayIndex[0] = '\0';
+    bool isIndex = false;
+    for (int i = 0; i < strlen(varName); i++){
+        if (varName[i] == '@'){
+            isIndex = true;
+        } else if (isIndex){
+            appendChar(&arrayIndex, varName[i]);
+        } 
+    }
+
+    char* index;
+
+    if (isIndex){
+        index = getCorrelation(arrayIndex, resultantAsm);
+        free(arrayIndex);
+        char* final = malloc(1);
+        final[0] = '\0';
+        if (index[0] == '['){ // means if INDEX in stack
+            char* next = getNextEmptyGeneralRegister();
+            if (strcmp(next, "none") != 0){
+                append(resultantAsm, "\nmov ");
+                append(resultantAsm, next);
+                append(resultantAsm, ", ");
+                append(resultantAsm, index);
+                int nextStack = stackNameList->size * 4;
+                char str[30];
+                sprintf(str, "mov [esp + %d], %s\npop %s", nextStack, next, next);
+                append(resultantAsm, str);
+                sprintf(str, "[esp + %d]", nextStack);
+                append(&final, str); 
+            } else {
+                append(resultantAsm, "\npush eax\nmov eax, ");
+                append(resultantAsm, index);
+                int nextStack = stackNameList->size * 4;
+                char str[30];
+                sprintf(str, "mov [esp + %d], eax\npop eax", nextStack);
+                append(resultantAsm, str);
+                sprintf(str, "[esp + %d]", nextStack);
+                append(&final, str); 
+            }
+            free(index);
+        } else{
+            append(&final, "[esp + ");
+            append(&final, index);
+            append(&final, "*4]");
+        }
+
+        return final; // FREE THIS YOU KNOW THE DRILL (same as other, starts with '[')
+    }
+
     for (int i = 0; i < 6; i++){
         if (strcmp(generalRegisters[i], varName) == 0){
             switch (i){
@@ -232,7 +287,7 @@ char* getCorrelation(char* varName){
     }
 
     for (int i = 0; i < 8; i++){
-        if (strcmp(floatRegisters[i], "") == 0){
+        if (strcmp(floatRegisters[i], varName) == 0){
             switch (i){
                 case 0:
                     return "xmm0";
@@ -255,8 +310,8 @@ char* getCorrelation(char* varName){
     }
 
     for (int i = 0; i < stackNameList->size; i++){ // PAY ATTENTION: IF THE RESULT IS [ESP + X] MEANING IN STACK, YOU HAVE TO FREE THE RESULTANT STRING
-        if (strcmp(stackNameList->data[i], stackNameList->data[i])){
-            int j = i * 4;
+        if (strcmp(stackNameList->data[i], varName) == 0){
+            int j = ((stackNameList->size - 1) - i) * 4;
             int size = snprintf(NULL, 0, "[esp + %d]", j) + 1;
             char* str = malloc(size);
 
@@ -276,13 +331,13 @@ int getAsmType(char* varName){
     }
 
     for (int i = 0; i < 8; i++){
-        if (strcmp(floatRegisters[i], "") == 0){
+        if (strcmp(floatRegisters[i], varName) == 0){
             return 1;
         }
     }
 
     for (int i = 0; i < stackNameList->size; i++){ 
-        if (strcmp(stackNameList->data[i], stackNameList->data[i])){
+        if (strcmp(stackNameList->data[i], varName) == 0){
             return 2;
         }
     }
@@ -298,7 +353,7 @@ int getType(char* varName){
 
     for (int i = 0; i < floatNameList->size; i++){
         if (strcmp(floatNameList->data[i], varName) == 0){
-            return 0;
+            return 1;
         }
     }
 
@@ -308,7 +363,6 @@ int getType(char* varName){
 char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, char** packs, int numPacks, int packsIndex){ // PAY ATTENTION: FREE THIS AFTER YOU CALL IT NO MATTER WHAT
     char* resultantAsm = malloc(1);
     resultantAsm[0] = '\0';
-    return resultantAsm;
 
     char* arguments[numArguments];
     for (int i = 0; i < numArguments; i++) {
@@ -321,7 +375,7 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
         if (currentArgument[i] == ','){
             ++argumentIndex;
         } else {
-            append_char(&arguments[argumentIndex], currentArgument[i]); // combine current argument at this with this new character
+            appendChar(&arguments[argumentIndex], currentArgument[i]); // combine current argument at this with this new character
         }
     }
 
@@ -421,7 +475,7 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
             }
         case INT:
         case FLOAT:
-        case PRIME:
+        case PRIME: 
         case ADD:
         case SUB:
         case MUL:
@@ -467,6 +521,8 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
         free(arguments[i]);
     }
 
+
+    return resultantAsm;
 }
 
 // parse function will go here
