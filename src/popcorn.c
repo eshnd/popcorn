@@ -309,8 +309,6 @@ char* getCorrelation(char* varName, char** resultantAsm){
         }
 
         free(index);
-    } else {
-        free(final);
     }
 
     free(arrayIndex);
@@ -353,7 +351,7 @@ char* getCorrelation(char* varName, char** resultantAsm){
     }
     free(final);
     free(arrayName);
-
+    
     for (int i = 0; i < 6; i++){
         if (strcmp(generalRegisters[i], varName) == 0){
             switch (i){
@@ -375,6 +373,7 @@ char* getCorrelation(char* varName, char** resultantAsm){
 
     for (int i = 0; i < 8; i++){
         if (strcmp(floatRegisters[i], varName) == 0){
+            
             switch (i){
                 case 0:
                     return "xmm0";
@@ -664,6 +663,7 @@ int getType(char* varName){
 }
 
 char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, char** packs, int numPacks, int packsIndex){ // PAY ATTENTION: FREE THIS AFTER YOU CALL IT NO MATTER WHAT
+    
     char* resultantAsm = malloc(1);
     resultantAsm[0] = '\0';
 
@@ -907,6 +907,7 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
         case ARRAY: {
             for (int i = 1; i < sizeof(arguments) / sizeof(arguments[0]); i++){
                 char* newValue = getCorrelation(arguments[i], &resultantAsm);
+                
                 append(&resultantAsm, "\npush ");
                 if (newValue[0] == '['){
                     append(&resultantAsm, "dword ");
@@ -946,8 +947,11 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
         case PRIME: {// move integers to general registers, move floats to float registers, FOR VALUES WITH @ SIGN IN THEM, JUST COPY THEM ONTO A REGISTER????
             int currentGeneralRegister = 0;
             int currentFloatRegister = 0;
+            
             for (int i = 0; i < sizeof(arguments) / sizeof(arguments[0]); i++){
+                
                 char* value = getCorrelation(arguments[i], &resultantAsm);
+                
                 int type = getType(arguments[i]); // 0 for int, 1 for float, 2 for a value in an intArray, 3 for a value in a floatArray
                 if ((type % 2 == 0 && value[0] == 'e') || (type % 2 != 0 && value[0] == 'x')){
                     continue;
@@ -1201,7 +1205,6 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
         free(arguments[i]);
     }
 
-
     return resultantAsm;
 }
 
@@ -1240,10 +1243,6 @@ char* parse(char* fileString, char splitter){
     free(currentWord);
     
     char* packs[numPacks];
-    for (int i = 0; i < numPacks; i++) {
-        packs[i] = malloc(1);
-        packs[i][0] = '\0';
-    }
 
     int packsIndex = 0;
     
@@ -1266,12 +1265,13 @@ char* parse(char* fileString, char splitter){
             } else if (fileString[i] == splitter){
                 commandStatus = true;
                 packStatus = false;
+                
                 char* j =asmConvert(currentCommand, currentArgument, numArguments, packs, numPacks, packsIndex);
                 append(&resultantAsm, j);
                 free(j);
                 currentCommand[0] = '\0';
                 currentArgument[0] = '\0';
-                numArguments = 0;
+                numArguments = 1;
             } else if (commandStatus){
                 appendChar(&currentCommand, fileString[i]);
                 
@@ -1285,9 +1285,6 @@ char* parse(char* fileString, char splitter){
         
     }
 
-    for (int i = 0; i < numPacks; i++) {
-        free(packs[i]);
-    }
 
     free(currentCommand);
     free(currentArgument);
@@ -1303,7 +1300,7 @@ int main(int argc, char* argv[]){
     floatArrayNameList = createStringList(0);
 
     // get file, store in string, and call parser
-    char* result = parse("int: $a, 76; prime: $a;", ';');
+    char* result = parse("mode: 32BIT_PROTECTED; int: $a, 76; int: $b, 77;int: $c, 77;int: $d, 77;int: $e, 77;int: $f, 77;int: $g, 77; prime: $g;", ';');
     printf("%s", result);
     free(result);
 
