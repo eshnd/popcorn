@@ -117,6 +117,7 @@ typedef enum {
     STRING,
     CHAR,
     ARRAYF,
+    EXPEL,
     CMD_NOT_RECOGNIZED
 } command;
 
@@ -163,6 +164,7 @@ command getEnum(char *cmd) {
     if (strcmp(cmd, "string") == 0) return STRING;
     if (strcmp(cmd, "char") == 0) return CHAR;
     if (strcmp(cmd, "arrayf") == 0) return ARRAYF;
+    if (strcmp(cmd, "expel") == 0) return EXPEL;
     return CMD_NOT_RECOGNIZED;
 }
 
@@ -203,7 +205,7 @@ int getNextEmptyGeneralRegisterNum(){
 
 char* getNextEmptyFloatRegister(){
     for (int i = 0; i < 8; i++){
-        if (strcmp(floatRegisters[i], "none") == 0){
+        if (strcmp(floatRegisters[i], "none") == 0 && !vecRegisters[i]){
             switch (i){
                 case 0:
                     return "xmm0";
@@ -229,7 +231,7 @@ char* getNextEmptyFloatRegister(){
 
 int getNextEmptyFloatRegisterNum(){
     for (int i = 0; i < 8; i++){
-        if (strcmp(floatRegisters[i], "none") == 0){
+        if (strcmp(floatRegisters[i], "none") == 0 && !vecRegisters[i]){
             return i;
         }
     }
@@ -306,7 +308,7 @@ char* getCorrelation(char* varName, char** resultantAsm){
                     char* str = malloc(size);
 
                     sprintf(str, "[esp + %d + %s*4]", j, final);
-                    
+
                     free(final);
                     free(arrayName);
                     return str;
@@ -316,6 +318,7 @@ char* getCorrelation(char* varName, char** resultantAsm){
 
                     sprintf(str, "[esp + %d + %s*4]", j, final);
                     append(resultantAsm, "\npush ");
+                    appendString(stackNameList, "__POPCORN_RESERVED__");
                     append(resultantAsm, str);
 
                     free(final);
@@ -417,6 +420,30 @@ int getType(char* varName){
     for (int i = 0; i < floatNameList->size; i++){
         if (strcmp(floatNameList->data[i], varName) == 0){
             return 1;
+        }
+    }
+
+    char* arrayName = malloc(1);
+    arrayName[0] = '\0';
+    for (int i = 0; i < strlen(varName); i++){
+        if (varName[i] == '@'){
+            break;
+        } else {
+            appendChar(&arrayName, varName[i]);
+        }
+    }
+
+    for (int i = 0; i < intArrayNameList->size; i++){
+        if (strcmp(intArrayNameList->data[i], arrayName) == 0){
+            free(arrayName);
+            return 2;
+        }
+    }
+
+    for (int i = 0; i < floatArrayNameList->size; i++){
+        if (strcmp(floatArrayNameList->data[i], arrayName) == 0){
+            free(arrayName);
+            return 3;
         }
     }
 
@@ -666,21 +693,56 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
         }
         case ARRAY: {
             for (int i = 1; i < sizeof(arguments) / sizeof(arguments[0]); i++){
+                char* newValue = getCorrelation(arguments[i], &resultantAsm);
+                append(&resultantAsm, "\npush ");
+                if (newValue[0] == '['){
+                    append(&resultantAsm, "dword ");
+                }
+                append(&resultantAsm, newValue);
                 appendString(stackNameList, arguments[0]);
             }
+            appendString(intArrayNameList, arguments[0]);
             break;
         }
         case ARRAYF: {
             for (int i = 1; i < sizeof(arguments) / sizeof(arguments[0]); i++){
+                char* newValue = getCorrelation(arguments[i], &resultantAsm);
+                append(&resultantAsm, "\npush ");
+                if (newValue[0] == '['){
+                    append(&resultantAsm, "dword ");
+                }
+                if (arguments[1][0] == '$'){
+                    append(&resultantAsm, newValue);
+                } else {
+                    append(&resultantAsm, "__float32__(");
+                    append(&resultantAsm, newValue);
+                    append(&resultantAsm, ")");
+                }
                 appendString(stackNameList, arguments[0]);
+                
             }
+            appendString(floatArrayNameList, arguments[0]);
             break;
         }
-        case PRIME: {// move integers to general registers, move floats to float registers, FOR VALUES WITH @ SIGN IN THEM, JUST COPY THEM ONTO A REGISTER???? MAYBE IDK
-            
+        case PRIME: {// move integers to general registers, move floats to float registers, FOR VALUES WITH @ SIGN IN THEM, JUST COPY THEM ONTO A REGISTER????
+            int currentGeneralRegister = 0;
+            int currentFloatRegister = 0;
+            for (int i = 0; i < sizeof(arguments) / sizeof(arguments[0]); i++){
+                char* value = getCorrelation(arguments[i], &resultantAsm);
+                int type = getType(arguments[i]); // 0 for int, 1 for float, 2 for a value in an intArray, 3 for a value in a floatArray
+                if (value[0] != '['){
+                    continue;
+                }
+                // check for open general registers if int
+                // if not, kick the int in the currentGeneralRegister to stack and inc that by 0 
+                // check for open float registers if float
+
+            }
 
             break;
         }
+        case INJECT: {break;} // inject MULTIPLE values into stack (EDIT THIS LATER FOR STRING EDITING TOO)
+        case EXPEL: {break;} // delete MULTIPLE values from stack (EDIT THIS LATER FOR STRING EDITING TOO)
         case ADD: {break;}
         case SUB: {break;}
         case MUL: {break;}
@@ -703,7 +765,6 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
         case VSUBF: {break;}
         case VMULF: {break;}
         case VDIVF: {break;}
-        case INJECT: {break;} // inject MULTIPLE values into stack (EDIT THIS LATER FOR STRING EDITING TOO)
         case CHAR: {break;} // treat like integer, literally just a byte
         case STRING: {break;}
         case EDIT: {break;}
