@@ -277,6 +277,7 @@ char* getCorrelation(char* varName, char** resultantAsm){
     char* index;
     char* final = malloc(1);
     final[0] = '\0';
+    bool popback = false;
 
     if (isIndex){
         index = getCorrelation(arrayIndex, resultantAsm);
@@ -300,7 +301,8 @@ char* getCorrelation(char* varName, char** resultantAsm){
                 append(resultantAsm, index);
                 // appendString(stackNameList, "__POPCORN_RESERVED__");
                 // append(resultantAsm, "\npush eax\nmov eax, [esp + 4]");
-                append(&final, "eax"); 
+                append(&final, "eax");
+                popback = true;
             }
         } else{
             append(&final, index);
@@ -320,26 +322,29 @@ char* getCorrelation(char* varName, char** resultantAsm){
             if (strcmp(stackNameList->data[i], arrayName) == 0){
                 int j = ((stackNameList->size - 1) - i) * 4;
                 if (final[0] != 'e'){
-                    int size = snprintf(NULL, 0, "[esp + %d + %s*4]", j, final) + 1;
+                    int size = snprintf(NULL, 0, "[esp + %d - %s*4]", j, final) + 1;
                     char* str = malloc(size);
 
-                    sprintf(str, "[esp + %d + %s*4]", j, final);
+                    sprintf(str, "[esp + %d - %s*4]", j, final);
 
                     free(final);
                     free(arrayName);
                     return str;
                 } else {
-                    int size = snprintf(NULL, 0, "[esp + %d + %s*4]", j, final) + 1;
+                    int size = snprintf(NULL, 0, "[esp + %d - %s*4]", j, final) + 1;
                     char* str = malloc(size);
 
-                    sprintf(str, "[esp + %d + %s*4]", j, final);
+                    sprintf(str, "[esp + %d - %s*4]", j, final);
                     append(resultantAsm, "\npush ");
                     appendString(stackNameList, "__POPCORN_RESERVED__");
                     append(resultantAsm, str);
-
+                    if (popback) {
+                        append(resultantAsm, "\nmov eax, [esp + 4]");
+                    }
+                    sprintf(str, "[esp]"); // pretty sure this is how this works
                     free(final);
                     free(arrayName);
-                    return "[esp]";
+                    return str;
                 }
                 
                 
@@ -795,7 +800,62 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
                     if (value[0] == '['){
                         free(value);
                     }
+                    if (nextNum != 5){
+                        currentGeneralRegister = nextNum + 1;
+                    } else {
+                        currentGeneralRegister = 0;
+                    }
+                    
                     continue;
+                } else {
+                    if (currentGeneralRegister > 5){
+                        currentGeneralRegister = 0;
+                    }
+                    appendString(stackNameList, generalRegisters[currentGeneralRegister]);
+                    generalRegisters[currentGeneralRegister] = arguments[i];
+                    char* next;
+                    switch (currentGeneralRegister){
+                        case 0:
+                            next = "eax";
+                            break;
+                        case 1:
+                            next = "ebx";
+                            break;
+                        case 2:
+                            next = "ecx";
+                            break;
+                        case 3:
+                            next = "edx";
+                            break;
+                        case 4:
+                            next = "edi";
+                            break;
+                        case 5:
+                            next = "esi";
+                            break;                
+                    }
+                    append(&resultantAsm, "\npush ");
+                    append(&resultantAsm, next);
+                    append(&resultantAsm, "\nmov ");
+                    append(&resultantAsm, next);
+                    append(&resultantAsm, ", ");
+                    if (value[0] == '['){
+                        append(&resultantAsm, "dword ");
+                    }
+                    append(&resultantAsm, value);
+                    char* arrayName = getArrayName(arguments[i]);
+                    removeString(stackNameList, getItemInStackIndex(arrayName));
+                    free(arrayName);
+                    if (value[0] == '['){
+                        free(value);
+                    }
+                    if (currentGeneralRegister != 5){
+                        currentGeneralRegister = currentGeneralRegister + 1;
+                    } else {
+                        currentGeneralRegister = 0;
+                    }
+                    continue;
+
                 }
 
                 next = getNextEmptyFloatRegister();
@@ -828,15 +888,17 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
                 }
 
                 
-                // check for open general registers if int
-                // if not, push out the int in the currentGeneralRegister to stack and inc that by 0 
-                // check for open float registers if float
+                // STILL HAVE TO DO IF THERE ISNT A REG AVALIABLE FOR FLOAT
 
             }
 
             break;
         }
-        case INJECT: {break;} // inject MULTIPLE values into stack (EDIT THIS LATER FOR STRING EDITING TOO)
+        case INJECT: {
+            // make version of getCorrelation where you sacrifice eax to store the full [esp] address
+            
+            break;
+        } // inject MULTIPLE values into stack (EDIT THIS LATER FOR STRING EDITING TOO)
         case EXPEL: {break;} // delete MULTIPLE values from stack (EDIT THIS LATER FOR STRING EDITING TOO)
         case ADD: {break;}
         case SUB: {break;}
