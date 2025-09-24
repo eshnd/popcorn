@@ -289,7 +289,9 @@ char* getCorrelation(char* varName, char** resultantAsm){
     arrayName[0] = '\0';
     bool isIndex = false;
     for (int i = 0; i < strlen(varName); i++){
-        if (varName[i] == '@'){
+        if (varName[i] == '@' && isIndex){
+            appendChar(&arrayIndex, varName[i]);
+        }else if (varName[i] == '@'){
             isIndex = true;
         } else if (isIndex){
             appendChar(&arrayIndex, varName[i]);
@@ -436,9 +438,8 @@ char* getCorrelation(char* varName, char** resultantAsm){
 
 
 
-
-
-char* getSacrificialCorrelation(char* varName, char** resultantAsm){ // MOVE EAX VAR INTO STACK BEFORE DOING THIS
+// THIS IS THE SAME FOR NOW YOU STILL HAVE TO EDIT IT
+char* getSacrificialCorrelation(char* varName, char** resultantAsm){
     if (varName[0] != '$'){
         return varName;
     }
@@ -449,7 +450,9 @@ char* getSacrificialCorrelation(char* varName, char** resultantAsm){ // MOVE EAX
     arrayName[0] = '\0';
     bool isIndex = false;
     for (int i = 0; i < strlen(varName); i++){
-        if (varName[i] == '@'){
+        if (varName[i] == '@' && isIndex){
+            appendChar(&arrayIndex, varName[i]);
+        }else if (varName[i] == '@'){
             isIndex = true;
         } else if (isIndex){
             appendChar(&arrayIndex, varName[i]);
@@ -491,13 +494,8 @@ char* getSacrificialCorrelation(char* varName, char** resultantAsm){ // MOVE EAX
         } else{
             append(&final, index);
         }
-
-        free(index);
-    } else {
-        free(final);
     }
 
-    free(arrayIndex);
     // FINAL IS INDEX, ARRAYNAME IS ARRAY
 
     if (final[0] != '\0'){
@@ -519,6 +517,13 @@ char* getSacrificialCorrelation(char* varName, char** resultantAsm){ // MOVE EAX
                     char* str = malloc(size);
 
                     sprintf(str, "[ebp - %d - %s*4]", j, final);
+                    append(resultantAsm, "\npush dword ");
+                    appendString(stackNameList, "__POPCORN_RESERVED__");
+                    append(resultantAsm, str);
+                    if (popback) {
+                        append(resultantAsm, "\nmov eax, [esp + 4]");
+                    }
+                    sprintf(str, "[esp]"); // pretty sure this is how this works
                     free(final);
                     free(arrayName);
                     return str;
@@ -530,7 +535,7 @@ char* getSacrificialCorrelation(char* varName, char** resultantAsm){ // MOVE EAX
     }
     free(final);
     free(arrayName);
-
+    
     for (int i = 0; i < 6; i++){
         if (strcmp(generalRegisters[i], varName) == 0){
             switch (i){
@@ -552,6 +557,7 @@ char* getSacrificialCorrelation(char* varName, char** resultantAsm){ // MOVE EAX
 
     for (int i = 0; i < 8; i++){
         if (strcmp(floatRegisters[i], varName) == 0){
+            
             switch (i){
                 case 0:
                     return "xmm0";
@@ -573,7 +579,7 @@ char* getSacrificialCorrelation(char* varName, char** resultantAsm){ // MOVE EAX
         }
     }
 
-    for (int i = 0; i < stackNameList->size; i++){ // PAY ATTENTION: IF THE RESULT IS [ESP + X] MEANING IN STACK, YOU HAVE TO FREE THE RESULTANT STRING
+    for (int i = 0; i < stackNameList->size; i++){ // PAY ATTENTION: IF THE RESULT IS [EBP + X] MEANING IN STACK, YOU HAVE TO FREE THE RESULTANT STRING
         if (strcmp(stackNameList->data[i], varName) == 0){
             int j = i * 4;
             int size = snprintf(NULL, 0, "[ebp - %d]", j) + 1;
@@ -583,7 +589,6 @@ char* getSacrificialCorrelation(char* varName, char** resultantAsm){ // MOVE EAX
             return str;
         }
     }
-
     return "ERROR";
 }
 
@@ -1285,10 +1290,6 @@ char* parse(char* fileString, char splitter){
 
     int packsIndex = 0;
     
-    for (int i = 0; i < strlen(fileString); i++){
-        char character = fileString[i];
-        
-    }
     
     for (int i = 0; i < strlen(fileString); i++){
         if (!commentStatus){
@@ -1339,7 +1340,7 @@ int main(int argc, char* argv[]){
     floatArrayNameList = createStringList(0);
 
     // get file, store in string, and call parser
-    char* result = parse("array: $a, {76, 2, 94, 11}; int: $b, $a@1; int: $c, $a@$b;", ';');
+    char* result = parse("array: $a, {76, 2, 94, 11}; array: $b, {1, 2, 3}; int: $c, $a@$b@0;", ';');
     printf("%s", result);
     free(result);
 
