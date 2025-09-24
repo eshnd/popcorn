@@ -54,6 +54,22 @@ void appendString(stringList* list, const char* str) {
     list->data[list->size++] = strdup(str);
 }
 
+void removeString(stringList* list, size_t index) {
+    if (index >= list->size) {
+        fprintf(stderr, "Index out of bounds: %zu\n", index);
+        return;
+    }
+
+
+    free(list->data[index]);
+
+    for (size_t i = index; i < list->size - 1; i++) {
+        list->data[i] = list->data[i + 1];
+    }
+
+    list->size--; 
+}
+
 void freeStringList(stringList* list) { // FREE IT WHEN DONE
 
     for (size_t i = 0; i < list->size; i++) {
@@ -389,6 +405,15 @@ char* getCorrelation(char* varName, char** resultantAsm){
     return "ERROR";
 }
 
+int getItemInStackIndex(char* varName){
+    for (int i = 0; i < stackNameList->size; i++){ 
+        if (strcmp(stackNameList->data[i], varName) == 0){
+            return i;
+        }
+    }
+    return -1;
+}
+
 int getAsmType(char* varName){
     for (int i = 0; i < 6; i++){
         if (strcmp(generalRegisters[i], varName) == 0){
@@ -408,6 +433,20 @@ int getAsmType(char* varName){
         }
     }
     return -1;
+}
+
+char* getArrayName(char* varName){ // MUST FREE
+    char* arrayName = malloc(1);
+    arrayName[0] = '\0';
+    for (int i = 0; i < strlen(varName); i++){
+        if (varName[i] == '@'){
+            break;
+        } else {
+            appendChar(&arrayName, varName[i]);
+        }
+    }
+
+    return arrayName;
 }
 
 int getType(char* varName){
@@ -700,6 +739,9 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
                 }
                 append(&resultantAsm, newValue);
                 appendString(stackNameList, arguments[0]);
+                if (newValue[0] == '['){
+                    free(newValue);
+                }
             }
             appendString(intArrayNameList, arguments[0]);
             break;
@@ -719,6 +761,9 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
                     append(&resultantAsm, ")");
                 }
                 appendString(stackNameList, arguments[0]);
+                if (newValue[0] == '['){
+                    free(newValue);
+                }
                 
             }
             appendString(floatArrayNameList, arguments[0]);
@@ -730,11 +775,61 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
             for (int i = 0; i < sizeof(arguments) / sizeof(arguments[0]); i++){
                 char* value = getCorrelation(arguments[i], &resultantAsm);
                 int type = getType(arguments[i]); // 0 for int, 1 for float, 2 for a value in an intArray, 3 for a value in a floatArray
-                if (value[0] != '['){
+                if ((type % 2 == 0 && value[0] == 'e') || (type % 2 != 0 && value[0] == 'x')){
                     continue;
                 }
+                char* next = getNextEmptyGeneralRegister();
+                if (next[0] != 'n' && (type == 0 || type == 2)){
+                    int nextNum = getNextEmptyGeneralRegisterNum();
+                    generalRegisters[nextNum] = arguments[i];
+                    append(&resultantAsm, "\nmov ");
+                    append(&resultantAsm, next);
+                    append(&resultantAsm, ", ");
+                    if (value[0] == '['){
+                        append(&resultantAsm, "dword ");
+                    }
+                    append(&resultantAsm, value);
+                    char* arrayName = getArrayName(arguments[i]);
+                    removeString(stackNameList, getItemInStackIndex(arrayName));
+                    free(arrayName);
+                    if (value[0] == '['){
+                        free(value);
+                    }
+                    continue;
+                }
+
+                next = getNextEmptyFloatRegister();
+                if (next[0] != 'n' && (type == 1 || type == 3)){
+                    int nextNum = getNextEmptyFloatRegisterNum();
+                    floatRegisters[nextNum] = arguments[i];
+                    if (value[0] == 'e'){
+                        append(&resultantAsm, "\nmovd ");
+                        append(&resultantAsm, next);
+                        append(&resultantAsm, ", ");
+                        append(&resultantAsm, value);
+                    }  else if (value[0] == 'x'){
+                        append(&resultantAsm, "\nmovss ");
+                        append(&resultantAsm, next);
+                        append(&resultantAsm, ", ");
+                        append(&resultantAsm, value);
+                    } else if (value[0] == '['){
+                        append(&resultantAsm, "\nmovss ");
+                        append(&resultantAsm, next);
+                        append(&resultantAsm, ", dword ");
+                        append(&resultantAsm, value);
+                    }
+                    char* arrayName = getArrayName(arguments[i]);
+                    removeString(stackNameList, getItemInStackIndex(arrayName));
+                    if (value[0] == '['){
+                        free(value);
+                    }
+                    free(arrayName);
+                    continue;
+                }
+
+                
                 // check for open general registers if int
-                // if not, kick the int in the currentGeneralRegister to stack and inc that by 0 
+                // if not, push out the int in the currentGeneralRegister to stack and inc that by 0 
                 // check for open float registers if float
 
             }
