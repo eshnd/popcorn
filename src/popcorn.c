@@ -320,21 +320,21 @@ char* getCorrelation(char* varName, char** resultantAsm){
         // search for array and THEN return
         for (int i = 0; i < stackNameList->size; i++){
             if (strcmp(stackNameList->data[i], arrayName) == 0){
-                int j = ((stackNameList->size - 1) - i) * 4;
+                int j = i * 4;
                 if (final[0] != 'e'){
-                    int size = snprintf(NULL, 0, "[esp + %d - %s*4]", j, final) + 1;
+                    int size = snprintf(NULL, 0, "[ebp - %d - %s*4]", j, final) + 1;
                     char* str = malloc(size);
 
-                    sprintf(str, "[esp + %d - %s*4]", j, final);
+                    sprintf(str, "[ebp - %d - %s*4]", j, final);
 
                     free(final);
                     free(arrayName);
                     return str;
                 } else {
-                    int size = snprintf(NULL, 0, "[esp + %d - %s*4]", j, final) + 1;
+                    int size = snprintf(NULL, 0, "[ebp - %d - %s*4]", j, final) + 1;
                     char* str = malloc(size);
 
-                    sprintf(str, "[esp + %d - %s*4]", j, final);
+                    sprintf(str, "[ebp - %d - %s*4]", j, final);
                     append(resultantAsm, "\npush ");
                     appendString(stackNameList, "__POPCORN_RESERVED__");
                     append(resultantAsm, str);
@@ -396,19 +396,188 @@ char* getCorrelation(char* varName, char** resultantAsm){
         }
     }
 
-    for (int i = 0; i < stackNameList->size; i++){ // PAY ATTENTION: IF THE RESULT IS [ESP + X] MEANING IN STACK, YOU HAVE TO FREE THE RESULTANT STRING
+    for (int i = 0; i < stackNameList->size; i++){ // PAY ATTENTION: IF THE RESULT IS [EBP + X] MEANING IN STACK, YOU HAVE TO FREE THE RESULTANT STRING
         if (strcmp(stackNameList->data[i], varName) == 0){
-            int j = ((stackNameList->size - 1) - i) * 4;
-            int size = snprintf(NULL, 0, "[esp + %d]", j) + 1;
+            int j = i * 4;
+            int size = snprintf(NULL, 0, "[ebp - %d]", j) + 1;
             char* str = malloc(size);
 
-            sprintf(str, "[esp + %d]", j);
+            sprintf(str, "[ebp - %d]", j);
             return str;
         }
     }
 
     return "ERROR";
 }
+
+
+
+
+
+
+
+
+
+
+char* getSacrificialCorrelation(char* varName, char** resultantAsm){ // MOVE EAX VAR INTO STACK BEFORE DOING THIS
+    if (varName[0] != '$'){
+        return varName;
+    }
+
+    char* arrayIndex = malloc(1);
+    arrayIndex[0] = '\0';
+    char* arrayName = malloc(1);
+    arrayName[0] = '\0';
+    bool isIndex = false;
+    for (int i = 0; i < strlen(varName); i++){
+        if (varName[i] == '@'){
+            isIndex = true;
+        } else if (isIndex){
+            appendChar(&arrayIndex, varName[i]);
+        } else {
+            appendChar(&arrayName, varName[i]);
+        }
+    }
+
+    char* index;
+    char* final = malloc(1);
+    final[0] = '\0';
+    bool popback = false;
+
+    if (isIndex){
+        index = getCorrelation(arrayIndex, resultantAsm);
+        if (index[0] == '['){ // means if INDEX in stack
+            char* next = getNextEmptyGeneralRegister();
+            if (strcmp(next, "none") != 0){
+                append(resultantAsm, "\nmov ");
+                append(resultantAsm, next);
+                append(resultantAsm, ", ");
+                if (index[0] == '['){
+                    append(resultantAsm, "dword ");
+                }
+                append(resultantAsm, index);
+                // appendString(stackNameList, "__POPCORN_RESERVED__");
+                append(&final, next); 
+            } else {
+                append(resultantAsm, "\npush eax\nmov eax, ");
+                if (index[0] == '['){
+                    append(resultantAsm, "dword ");
+                }
+                append(resultantAsm, index);
+                // appendString(stackNameList, "__POPCORN_RESERVED__");
+                // append(resultantAsm, "\npush eax\nmov eax, [esp + 4]");
+                append(&final, "eax");
+                popback = true;
+            }
+        } else{
+            append(&final, index);
+        }
+
+        free(index);
+    } else {
+        free(final);
+    }
+
+    free(arrayIndex);
+    // FINAL IS INDEX, ARRAYNAME IS ARRAY
+
+    if (final[0] != '\0'){
+        // search for array and THEN return
+        for (int i = 0; i < stackNameList->size; i++){
+            if (strcmp(stackNameList->data[i], arrayName) == 0){
+                int j = i * 4;
+                if (final[0] != 'e'){
+                    int size = snprintf(NULL, 0, "[ebp - %d - %s*4]", j, final) + 1;
+                    char* str = malloc(size);
+
+                    sprintf(str, "[ebp - %d - %s*4]", j, final);
+
+                    free(final);
+                    free(arrayName);
+                    return str;
+                } else {
+                    int size = snprintf(NULL, 0, "[ebp - %d - %s*4]", j, final) + 1;
+                    char* str = malloc(size);
+
+                    sprintf(str, "[ebp - %d - %s*4]", j, final);
+                    free(final);
+                    free(arrayName);
+                    return str;
+                }
+                
+                
+            }
+        }
+    }
+    free(final);
+    free(arrayName);
+
+    for (int i = 0; i < 6; i++){
+        if (strcmp(generalRegisters[i], varName) == 0){
+            switch (i){
+                case 0:
+                    return "eax";
+                case 1:
+                    return "ebx";
+                case 2:
+                    return "ecx";
+                case 3:
+                    return "edx";
+                case 4:
+                    return "edi";
+                case 5:
+                    return "esi";                
+            }
+        }
+    }
+
+    for (int i = 0; i < 8; i++){
+        if (strcmp(floatRegisters[i], varName) == 0){
+            switch (i){
+                case 0:
+                    return "xmm0";
+                case 1:
+                    return "xmm1";
+                case 2:
+                    return "xmm2";
+                case 3:
+                    return "xmm3";
+                case 4:
+                    return "xmm4";
+                case 5:
+                    return "xmm5";
+                case 6:
+                    return "xmm6";
+                case 7:
+                    return "xmm7";
+            }
+        }
+    }
+
+    for (int i = 0; i < stackNameList->size; i++){ // PAY ATTENTION: IF THE RESULT IS [ESP + X] MEANING IN STACK, YOU HAVE TO FREE THE RESULTANT STRING
+        if (strcmp(stackNameList->data[i], varName) == 0){
+            int j = i * 4;
+            int size = snprintf(NULL, 0, "[ebp - %d]", j) + 1;
+            char* str = malloc(size);
+
+            sprintf(str, "[ebp - %d]", j);
+            return str;
+        }
+    }
+
+    return "ERROR";
+}
+
+
+
+
+
+
+
+
+
+
+
 
 int getItemInStackIndex(char* varName){
     for (int i = 0; i < stackNameList->size; i++){ 
@@ -979,7 +1148,12 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
             break;
         }
         case INJECT: {
-            // make version of getCorrelation where you sacrifice eax to store the full [esp] address
+            // move register 1 eax to stack in both asm and c
+            // call sacrificial correlation on argument 0
+            // call normal correlation on every other argument
+            // subtract esp by 4
+            // loop through every value after the [ebp] address of argument 0 until the last value is equal to [esp]
+            // finally, insert point
             
             break;
         } // inject MULTIPLE values into stack (EDIT THIS LATER FOR STRING EDITING TOO)
