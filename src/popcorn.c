@@ -331,8 +331,6 @@ char* getCorrelation(char* varName, char** resultantAsm){
         } else{
             append(&final, index);
         }
-
-        free(index);
     }
 
     // FINAL IS INDEX, ARRAYNAME IS ARRAY
@@ -356,7 +354,7 @@ char* getCorrelation(char* varName, char** resultantAsm){
                     char* str = malloc(size);
 
                     sprintf(str, "[ebp - %d - %s*4]", j, final);
-                    append(resultantAsm, "\npush ");
+                    append(resultantAsm, "\npush dword ");
                     appendString(stackNameList, "__POPCORN_RESERVED__");
                     append(resultantAsm, str);
                     if (popback) {
@@ -1341,7 +1339,7 @@ int main(int argc, char* argv[]){
     floatArrayNameList = createStringList(0);
 
     // get file, store in string, and call parser
-    char* result = parse("array: $a, {76, 87, 94, 11}; int: $b, $a@1;", ';');
+    char* result = parse("array: $a, {76, 2, 94, 11}; int: $b, $a@1; int: $c, $a@$b;", ';');
     printf("%s", result);
     free(result);
 
