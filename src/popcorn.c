@@ -208,6 +208,30 @@ char* getNextEmptyGeneralRegister(){
     return "none";
 }
 
+
+int getGenRegCorrelation(char* varName){
+    if (strcmp(varName, "eax") == 0){
+        return 0;
+    }
+    if (strcmp(varName, "ebx") == 0){
+        return 1;
+    }
+    if (strcmp(varName, "ecx") == 0){
+        return 2;
+    }
+    if (strcmp(varName, "edx") == 0){
+        return 3;
+    }
+    if (strcmp(varName, "edi") == 0){
+        return 4;
+    }
+    if (strcmp(varName, "esi") == 0){
+        return 5;
+    }
+    return -1;
+}
+
+
 int getNextEmptyGeneralRegisterNum(){
     for (int i = 0; i < 6; i++){
         if (strcmp(generalRegisters[i], "none") == 0){
@@ -405,7 +429,6 @@ char* getCorrelation(char* varName, char** resultantAsm){
             return str;
         }
     }
-
     return "ERROR";
 }
 
@@ -777,9 +800,11 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
                 break;
             }
         }
-        case INT: {// IS DWORD DECLARATION NECESSARY?????????????????????? (it is)
+        case INT: {// IS DWORD DECLARATION NECESSARY?????????????????????? (it is)`
+            
             appendString(intNameList, arguments[0]);
             char* next = getNextEmptyGeneralRegister();
+            
             char* newValue = getCorrelation(arguments[1], &resultantAsm);
             if (next[0] != 'n'){ // if there is a gen reg avaliable
                 int nextNum = getNextEmptyGeneralRegisterNum();
@@ -794,7 +819,7 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
             } else {
                 char* next = getNextEmptyFloatRegister();
                 if (next[0] != 'n'){
-                    int nextNum = getNextEmptyGeneralRegisterNum();
+                    int nextNum = getNextEmptyFloatRegisterNum();
                     floatRegisters[nextNum] = arguments[0];
                     if (arguments[1][0] == '$'){
                         append(&resultantAsm, "\nmovd ");
@@ -838,7 +863,7 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
             char* newValue = getCorrelation(arguments[1], &resultantAsm);
 
             if (next[0] != 'n'){
-                int nextNum = getNextEmptyGeneralRegisterNum();
+                int nextNum = getNextEmptyFloatRegisterNum();
                 floatRegisters[nextNum] = arguments[0];
                 if (arguments[1][0] == '$'){
                     if (newValue[0] == 'e'){
@@ -945,6 +970,8 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
             break;
         }
         case PRIME: {// move integers to general registers, move floats to float registers, FOR VALUES WITH @ SIGN IN THEM, JUST COPY THEM ONTO A REGISTER????
+            
+            
             int currentGeneralRegister = 0;
             int currentFloatRegister = 0;
             
@@ -956,6 +983,7 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
                 if ((type % 2 == 0 && value[0] == 'e') || (type % 2 != 0 && value[0] == 'x')){
                     continue;
                 }
+                
 
                 if (type % 2 == 0){
                     char* next = getNextEmptyGeneralRegister();
@@ -965,12 +993,17 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
                         append(&resultantAsm, "\nmov ");
                         append(&resultantAsm, next);
                         append(&resultantAsm, ", ");
+                        char* arrayName = getArrayName(arguments[i]);
                         if (value[0] == '['){
                             append(&resultantAsm, "dword ");
+                            removeString(stackNameList, getItemInStackIndex(arrayName)); // <- WRONG, GET FLOAT REGISTERS TOO
+
+                        } else if (value[0] == 'x'){
+                            floatRegisters[value[3] - '0'] = "none";
+                            // floatRegisters[atoi(value)] = "none"; // THIS DOESNT WORK
+                            // check x in float registers (DO THIS FOR OTHER REGISTERS AS WELL)
                         }
                         append(&resultantAsm, value);
-                        char* arrayName = getArrayName(arguments[i]);
-                        removeString(stackNameList, getItemInStackIndex(arrayName));
                         free(arrayName);
                         if (value[0] == '['){
                             free(value);
@@ -1014,12 +1047,19 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
                         append(&resultantAsm, "\nmov ");
                         append(&resultantAsm, next);
                         append(&resultantAsm, ", ");
+                        char* arrayName = getArrayName(arguments[i]);
+
                         if (value[0] == '['){
                             append(&resultantAsm, "dword ");
+                            removeString(stackNameList, getItemInStackIndex(arrayName));
+
+                            
+                        } else if (value[0] == 'x'){
+                            floatRegisters[value[3] - '0'] = "none";
+                            // floatRegisters[atoi(value)] = "none"; // THIS DOESNT WORK
+                            // check x in float registers (DO THIS FOR OTHER REGISTERS AS WELL)
                         }
                         append(&resultantAsm, value);
-                        char* arrayName = getArrayName(arguments[i]);
-                        removeString(stackNameList, getItemInStackIndex(arrayName));
                         free(arrayName);
                         if (value[0] == '['){
                             free(value);
@@ -1037,11 +1077,14 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
                 if (next[0] != 'n' && (type == 1 || type == 3)){
                     int nextNum = getNextEmptyFloatRegisterNum();
                     floatRegisters[nextNum] = arguments[i];
+                    char* arrayName = getArrayName(arguments[i]);
+                    
                     if (value[0] == 'e'){
                         append(&resultantAsm, "\nmovd ");
                         append(&resultantAsm, next);
                         append(&resultantAsm, ", ");
                         append(&resultantAsm, value);
+                        generalRegisters[getGenRegCorrelation(value)] = "none";
                     }  else if (value[0] == 'x'){
                         append(&resultantAsm, "\nmovss ");
                         append(&resultantAsm, next);
@@ -1052,9 +1095,9 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
                         append(&resultantAsm, next);
                         append(&resultantAsm, ", dword ");
                         append(&resultantAsm, value);
+                        removeString(stackNameList, getItemInStackIndex(arrayName));
+                    
                     }
-                    char* arrayName = getArrayName(arguments[i]);
-                    removeString(stackNameList, getItemInStackIndex(arrayName));
                     if (value[0] == '['){
                         free(value);
                     }
@@ -1117,11 +1160,14 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
                     }
                     append(&resultantAsm, "\npush ");
                     append(&resultantAsm, next);
+                    char* arrayName = getArrayName(arguments[i]);
+                    
                     if (value[0] == 'e'){
                         append(&resultantAsm, "\nmovd ");
                         append(&resultantAsm, next);
                         append(&resultantAsm, ", ");
                         append(&resultantAsm, value);
+                        generalRegisters[getGenRegCorrelation(value)] = "none";
                     }  else if (value[0] == 'x'){
                         append(&resultantAsm, "\nmovss ");
                         append(&resultantAsm, next);
@@ -1132,9 +1178,9 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
                         append(&resultantAsm, next);
                         append(&resultantAsm, ", dword ");
                         append(&resultantAsm, value);
+                        removeString(stackNameList, getItemInStackIndex(arrayName));
+                    
                     }
-                    char* arrayName = getArrayName(arguments[i]);
-                    removeString(stackNameList, getItemInStackIndex(arrayName));
                     free(arrayName);
                     if (value[0] == '['){
                         free(value);
@@ -1199,10 +1245,6 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
         case RANDOM: {break;}
         case CMD_NOT_RECOGNIZED: {break;}
             return "error";
-    }
-
-    for (int i = 0; i < numArguments; i++) {
-        free(arguments[i]);
     }
 
     return resultantAsm;
