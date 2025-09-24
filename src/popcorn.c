@@ -711,94 +711,67 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
         case MODE: {
             if (strcmp(arguments[0], "32BIT_PROTECTED") == 0){
                 append(&resultantAsm, "\n\
-                org 0x7E00\n\
-                \n\
-                start:\n\
-                    cli\n\
-                    xor ax, ax\n\
-                    mov ds, ax\n\
-                    mov es, ax\n\
-                    mov ss, ax\n\
-                    mov sp, 0x7C00\n\
-                \n\
-                    mov ax, 0x4F02\n\
-                    mov bx, 0x11F | 0x4000\n\
-                    int 0x10\n\
-                \n\
-                    mov ax, 0x4F01\n\
-                    mov cx, 0x11F\n\
-                    mov di, mode_info\n\
-                    int 0x10\n\
-                    \n\
-                    \n\
-                \n\
-                    mov eax, [mode_info + 0x28]\n\
-                    mov [lfb_addr], eax\n\
-                \n\
-                    movzx eax, word [mode_info + 0x10]\n\
-                    mov [lfb_pitch], eax \n\
-                \n\
-                    lgdt [gdt_desc]\n\
-                \n\
-                    mov eax, cr0\n\
-                    or  eax, 1\n\
-                    mov cr0, eax\n\
-                \n\
-                    jmp CODE_SEL:pm_start\n\
-                \n\
-                bits 32\n\
-                \n\
-                pm_start:\n\
-                    mov ax, DATA_SEL\n\
-                    mov ds, ax\n\
-                    mov es, ax\n\
-                    mov fs, ax\n\
-                    mov gs, ax\n\
-                    mov ss, ax\n\
-                    mov esp, 0x90000\n\
-                \n\
-                    mov esi, [lfb_addr]\n\
-                \n\
-                \n\
-                \n\
-                    mov eax, cr0\n\
-                    and eax, 0xFFFB \n\
-                    or  eax, 0x2 \n\
-                    mov cr0, eax\n\
-                \n\
-                    mov eax, cr4\n\
-                    or  eax, 0x600    \n\
-                    mov cr4, eax\n\
-                \n\
-                \n\
-                \n\
-                section .data\n\
-                \n\
-                align 4\n\
-                lfb_addr: dd 0\n\
-                lfb_pitch: dd 0\n\
-                zero: dd 0\n\
-                NULL: dd 0\n\
-                KEYS dd 128 dup(0)\n\
-                \n\
-                mode_info: times 256 db 0\n\
-                \n\
-                align 8\n\
-                gdt:\n\
-                    dq 0x0000000000000000\n\
-                    dq 0x00CF9A000000FFFF\n\
-                    dq 0x00CF92000000FFFF\n\
-                \n\
-                gdt_desc:\n\
-                    dw gdt_end - gdt - 1\n\
-                    dd gdt\n\
-                gdt_end:\n\
-                \n\
-                CODE_SEL equ 0x08\n\
-                DATA_SEL equ 0x10\n\
-                \n\
-                \n\
-                \n");
+org 0x7E00\n\
+start:\n\
+cli\n\
+xor ax, ax\n\
+mov ds, ax\n\
+mov es, ax\n\
+mov ss, ax\n\
+mov sp, 0x7C00\n\
+mov ax, 0x4F02\n\
+mov bx, 0x11F | 0x4000\n\
+int 0x10\n\
+mov ax, 0x4F01\n\
+mov cx, 0x11F\n\
+mov di, mode_info\n\
+int 0x10\n\
+mov eax, [mode_info + 0x28]\n\
+mov [lfb_addr], eax\n\
+movzx eax, word [mode_info + 0x10]\n\
+mov [lfb_pitch], eax \n\
+lgdt [gdt_desc]\n\
+mov eax, cr0\n\
+or  eax, 1\n\
+mov cr0, eax\n\
+jmp CODE_SEL:pm_start\n\
+bits 32\n\
+pm_start:\n\
+mov ax, DATA_SEL\n\
+mov ds, ax\n\
+mov es, ax\n\
+mov fs, ax\n\
+mov gs, ax\n\
+mov ss, ax\n\
+mov esp, 0x90000\n\
+mov esi, [lfb_addr]\n\
+mov eax, cr0\n\
+and eax, 0xFFFB \n\
+or  eax, 0x2 \n\
+mov cr0, eax\n\
+mov eax, cr4\n\
+or  eax, 0x600    \n\
+mov cr4, eax\n\
+section .data\n\
+align 4\n\
+lfb_addr: dd 0\n\
+lfb_pitch: dd 0\n\
+zero: dd 0\n\
+NULL: dd 0\n\
+KEYS dd 128 dup(0)\n\
+mode_info: times 256 db 0\n\
+align 8\n\
+gdt:\n\
+dq 0x0000000000000000\n\
+dq 0x00CF9A000000FFFF\n\
+dq 0x00CF92000000FFFF\n\
+gdt_desc:\n\
+dw gdt_end - gdt - 1\n\
+dd gdt\n\
+gdt_end:\n\
+CODE_SEL equ 0x08\n\
+DATA_SEL equ 0x10\n\
+section .text");
                 break;
             }
         }
@@ -1340,7 +1313,7 @@ int main(int argc, char* argv[]){
     floatArrayNameList = createStringList(0);
 
     // get file, store in string, and call parser
-    char* result = parse("array: $a, {76, 2, 94, 11}; array: $b, {1, 2, 3}; int: $c, $a@$b@0;", ';');
+    char* result = parse("mode: 32BIT_PROTECTED; array: $a, {76, 2, 94, 11}; array: $b, {1, 2, 3}; int: $c, $a@$b@0;", ';');
     printf("%s", result);
     free(result);
 
