@@ -69,6 +69,9 @@ void freeStringList(stringList* list) { // FREE IT WHEN DONE
 stringList* stackNameList;
 stringList* intNameList;
 stringList* floatNameList;
+stringList* intArrayNameList;
+stringList* floatArrayNameList;
+
 char* parse(char* body, char splitter);
 
 typedef enum {
@@ -113,6 +116,7 @@ typedef enum {
     ATV,
     STRING,
     CHAR,
+    ARRAYF,
     CMD_NOT_RECOGNIZED
 } command;
 
@@ -158,6 +162,7 @@ command getEnum(char *cmd) {
     if (strcmp(cmd, "a->v") == 0) return ATV;
     if (strcmp(cmd, "string") == 0) return STRING;
     if (strcmp(cmd, "char") == 0) return CHAR;
+    if (strcmp(cmd, "arrayf") == 0) return ARRAYF;
     return CMD_NOT_RECOGNIZED;
 }
 
@@ -238,22 +243,25 @@ char* getCorrelation(char* varName, char** resultantAsm){
 
     char* arrayIndex = malloc(1);
     arrayIndex[0] = '\0';
+    char* arrayName = malloc(1);
+    arrayName[0] = '\0';
     bool isIndex = false;
     for (int i = 0; i < strlen(varName); i++){
         if (varName[i] == '@'){
             isIndex = true;
         } else if (isIndex){
             appendChar(&arrayIndex, varName[i]);
-        } 
+        } else {
+            appendChar(&arrayName, varName[i]);
+        }
     }
 
     char* index;
+    char* final = malloc(1);
+    final[0] = '\0';
 
     if (isIndex){
         index = getCorrelation(arrayIndex, resultantAsm);
-        free(arrayIndex);
-        char* final = malloc(1);
-        final[0] = '\0';
         if (index[0] == '['){ // means if INDEX in stack
             char* next = getNextEmptyGeneralRegister();
             if (strcmp(next, "none") != 0){
@@ -264,32 +272,63 @@ char* getCorrelation(char* varName, char** resultantAsm){
                     append(resultantAsm, "dword ");
                 }
                 append(resultantAsm, index);
-                appendString(stackNameList, "__POPCORN_RESERVED__");
-                append(resultantAsm, "\npush "); // have to get reg {next} outta stack, but first push it?? (FIXED POSSIBLY)
-                append(resultantAsm, next);
-                append(&final, "[esp]"); 
+                // appendString(stackNameList, "__POPCORN_RESERVED__");
+                append(&final, next); 
             } else {
                 append(resultantAsm, "\npush eax\nmov eax, ");
                 if (index[0] == '['){
                     append(resultantAsm, "dword ");
                 }
                 append(resultantAsm, index);
-                int nextStack = (stackNameList->size * 4) - 4;
-                char str[30];
-                sprintf(str, "\npush eax\nmov eax, [esp + %d]", nextStack); // EDIT BECAUSE STACK ISNT LIKE THIS (FIXED ... PROBABLY)
-                appendString(stackNameList, "__POPCORN_RESERVED__");
-                append(resultantAsm, str);
-                append(&final, "[esp]"); 
+                // appendString(stackNameList, "__POPCORN_RESERVED__");
+                // append(resultantAsm, "\npush eax\nmov eax, [esp + 4]");
+                append(&final, "eax"); 
             }
-            free(index);
         } else{
-            append(&final, "[esp + ");
             append(&final, index);
-            append(&final, "*4]");
         }
 
-        return final; // FREE THIS YOU KNOW THE DRILL (same as other, starts with '[')
+        free(index);
+    } else {
+        free(final);
     }
+
+    free(arrayIndex);
+    // FINAL IS INDEX, ARRAYNAME IS ARRAY
+
+    if (final[0] != '\0'){
+        // search for array and THEN return
+        for (int i = 0; i < stackNameList->size; i++){
+            if (strcmp(stackNameList->data[i], arrayName) == 0){
+                int j = ((stackNameList->size - 1) - i) * 4;
+                if (final[0] != 'e'){
+                    int size = snprintf(NULL, 0, "[esp + %d + %s*4]", j, final) + 1;
+                    char* str = malloc(size);
+
+                    sprintf(str, "[esp + %d + %s*4]", j, final);
+                    
+                    free(final);
+                    free(arrayName);
+                    return str;
+                } else {
+                    int size = snprintf(NULL, 0, "[esp + %d + %s*4]", j, final) + 1;
+                    char* str = malloc(size);
+
+                    sprintf(str, "[esp + %d + %s*4]", j, final);
+                    append(resultantAsm, "\npush ");
+                    append(resultantAsm, str);
+
+                    free(final);
+                    free(arrayName);
+                    return "[esp]";
+                }
+                
+                
+            }
+        }
+    }
+    free(final);
+    free(arrayName);
 
     for (int i = 0; i < 6; i++){
         if (strcmp(generalRegisters[i], varName) == 0){
@@ -625,7 +664,23 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
 
             break;
         }
-        case PRIME: {break;}
+        case ARRAY: {
+            for (int i = 1; i < sizeof(arguments) / sizeof(arguments[0]); i++){
+                appendString(stackNameList, arguments[0]);
+            }
+            break;
+        }
+        case ARRAYF: {
+            for (int i = 1; i < sizeof(arguments) / sizeof(arguments[0]); i++){
+                appendString(stackNameList, arguments[0]);
+            }
+            break;
+        }
+        case PRIME: {// move integers to general registers, move floats to float registers, FOR VALUES WITH @ SIGN IN THEM, JUST COPY THEM ONTO A REGISTER???? MAYBE IDK
+            
+
+            break;
+        }
         case ADD: {break;}
         case SUB: {break;}
         case MUL: {break;}
@@ -648,7 +703,6 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
         case VSUBF: {break;}
         case VMULF: {break;}
         case VDIVF: {break;}
-        case ARRAY: {break;}
         case INJECT: {break;} // inject MULTIPLE values into stack (EDIT THIS LATER FOR STRING EDITING TOO)
         case CHAR: {break;} // treat like integer, literally just a byte
         case STRING: {break;}
@@ -682,10 +736,14 @@ int main(int argc, char* argv[]){
     stackNameList = createStringList(0);
     intNameList = createStringList(0);
     floatNameList = createStringList(0);
+    intArrayNameList = createStringList(0);
+    floatArrayNameList = createStringList(0);
 
     // get file, store in string, and call parser
 
     freeStringList(stackNameList);
     freeStringList(intNameList);
     freeStringList(floatNameList);
+    freeStringList(intArrayNameList);
+    freeStringList(floatArrayNameList);
 }
