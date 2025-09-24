@@ -783,82 +783,84 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
                 if ((type % 2 == 0 && value[0] == 'e') || (type % 2 != 0 && value[0] == 'x')){
                     continue;
                 }
-                char* next = getNextEmptyGeneralRegister();
-                if (next[0] != 'n' && (type == 0 || type == 2)){
-                    int nextNum = getNextEmptyGeneralRegisterNum();
-                    generalRegisters[nextNum] = arguments[i];
-                    append(&resultantAsm, "\nmov ");
-                    append(&resultantAsm, next);
-                    append(&resultantAsm, ", ");
-                    if (value[0] == '['){
-                        append(&resultantAsm, "dword ");
-                    }
-                    append(&resultantAsm, value);
-                    char* arrayName = getArrayName(arguments[i]);
-                    removeString(stackNameList, getItemInStackIndex(arrayName));
-                    free(arrayName);
-                    if (value[0] == '['){
-                        free(value);
-                    }
-                    if (nextNum != 5){
-                        currentGeneralRegister = nextNum + 1;
-                    } else {
-                        currentGeneralRegister = 0;
-                    }
-                    
-                    continue;
-                } else {
-                    if (currentGeneralRegister > 5){
-                        currentGeneralRegister = 0;
-                    }
-                    appendString(stackNameList, generalRegisters[currentGeneralRegister]);
-                    generalRegisters[currentGeneralRegister] = arguments[i];
-                    char* next;
-                    switch (currentGeneralRegister){
-                        case 0:
-                            next = "eax";
-                            break;
-                        case 1:
-                            next = "ebx";
-                            break;
-                        case 2:
-                            next = "ecx";
-                            break;
-                        case 3:
-                            next = "edx";
-                            break;
-                        case 4:
-                            next = "edi";
-                            break;
-                        case 5:
-                            next = "esi";
-                            break;                
-                    }
-                    append(&resultantAsm, "\npush ");
-                    append(&resultantAsm, next);
-                    append(&resultantAsm, "\nmov ");
-                    append(&resultantAsm, next);
-                    append(&resultantAsm, ", ");
-                    if (value[0] == '['){
-                        append(&resultantAsm, "dword ");
-                    }
-                    append(&resultantAsm, value);
-                    char* arrayName = getArrayName(arguments[i]);
-                    removeString(stackNameList, getItemInStackIndex(arrayName));
-                    free(arrayName);
-                    if (value[0] == '['){
-                        free(value);
-                    }
-                    if (currentGeneralRegister != 5){
-                        currentGeneralRegister = currentGeneralRegister + 1;
-                    } else {
-                        currentGeneralRegister = 0;
-                    }
-                    continue;
 
+                if (type % 2 == 0){
+                    char* next = getNextEmptyGeneralRegister();
+                    if (next[0] != 'n' && (type == 0 || type == 2)){
+                        int nextNum = getNextEmptyGeneralRegisterNum();
+                        generalRegisters[nextNum] = arguments[i];
+                        append(&resultantAsm, "\nmov ");
+                        append(&resultantAsm, next);
+                        append(&resultantAsm, ", ");
+                        if (value[0] == '['){
+                            append(&resultantAsm, "dword ");
+                        }
+                        append(&resultantAsm, value);
+                        char* arrayName = getArrayName(arguments[i]);
+                        removeString(stackNameList, getItemInStackIndex(arrayName));
+                        free(arrayName);
+                        if (value[0] == '['){
+                            free(value);
+                        }
+                        if (nextNum != 5){
+                            currentGeneralRegister = nextNum + 1;
+                        } else {
+                            currentGeneralRegister = 0;
+                        }
+                        
+                        continue;
+                    } else {
+                        if (currentGeneralRegister > 5){
+                            currentGeneralRegister = 0;
+                        }
+                        appendString(stackNameList, generalRegisters[currentGeneralRegister]);
+                        generalRegisters[currentGeneralRegister] = arguments[i];
+                        char* next;
+                        switch (currentGeneralRegister){
+                            case 0:
+                                next = "eax";
+                                break;
+                            case 1:
+                                next = "ebx";
+                                break;
+                            case 2:
+                                next = "ecx";
+                                break;
+                            case 3:
+                                next = "edx";
+                                break;
+                            case 4:
+                                next = "edi";
+                                break;
+                            case 5:
+                                next = "esi";
+                                break;                
+                        }
+                        append(&resultantAsm, "\npush ");
+                        append(&resultantAsm, next);
+                        append(&resultantAsm, "\nmov ");
+                        append(&resultantAsm, next);
+                        append(&resultantAsm, ", ");
+                        if (value[0] == '['){
+                            append(&resultantAsm, "dword ");
+                        }
+                        append(&resultantAsm, value);
+                        char* arrayName = getArrayName(arguments[i]);
+                        removeString(stackNameList, getItemInStackIndex(arrayName));
+                        free(arrayName);
+                        if (value[0] == '['){
+                            free(value);
+                        }
+                        if (currentGeneralRegister != 5){
+                            currentGeneralRegister = currentGeneralRegister + 1;
+                        } else {
+                            currentGeneralRegister = 0;
+                        }
+                        continue;
+
+                    }
                 }
-
-                next = getNextEmptyFloatRegister();
+                char* next = getNextEmptyFloatRegister();
                 if (next[0] != 'n' && (type == 1 || type == 3)){
                     int nextNum = getNextEmptyFloatRegisterNum();
                     floatRegisters[nextNum] = arguments[i];
@@ -884,12 +886,94 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
                         free(value);
                     }
                     free(arrayName);
+
+                    if (nextNum != 7){
+                        currentGeneralRegister = nextNum + 1;
+                    } else {
+                        currentGeneralRegister = 0;
+                    }
+
                     continue;
+                }else {
+                    if (currentFloatRegister > 7){
+                        currentFloatRegister = 0;
+                    }
+
+                    bool impossible = false;
+
+                    while (vecRegisters[currentFloatRegister]){
+                        currentFloatRegister = currentFloatRegister + 1;
+                        if (currentFloatRegister > 7){
+                            impossible = true;
+                            break;
+                        }
+                    }
+
+                    if (impossible){
+                        continue;
+                    }
+
+                    appendString(stackNameList, floatRegisters[currentFloatRegister]);
+                    floatRegisters[currentFloatRegister] = arguments[i];
+                    char* next;
+                    switch (currentFloatRegister){
+                        case 0:
+                            next = "xmm0";
+                            break;
+                        case 1:
+                            next = "xmm1";
+                            break;
+                        case 2:
+                            next = "xmm2";
+                            break;
+                        case 3:
+                            next = "xmm3";
+                            break;
+                        case 4:
+                            next = "xmm4";
+                            break;
+                        case 5:
+                            next = "xmm5";
+                            break;
+                        case 6:
+                            next = "xmm6";
+                            break;  
+                        case 7:
+                            next = "xmm7";
+                            break;                  
+                    }
+                    append(&resultantAsm, "\npush ");
+                    append(&resultantAsm, next);
+                    if (value[0] == 'e'){
+                        append(&resultantAsm, "\nmovd ");
+                        append(&resultantAsm, next);
+                        append(&resultantAsm, ", ");
+                        append(&resultantAsm, value);
+                    }  else if (value[0] == 'x'){
+                        append(&resultantAsm, "\nmovss ");
+                        append(&resultantAsm, next);
+                        append(&resultantAsm, ", ");
+                        append(&resultantAsm, value);
+                    } else if (value[0] == '['){
+                        append(&resultantAsm, "\nmovss ");
+                        append(&resultantAsm, next);
+                        append(&resultantAsm, ", dword ");
+                        append(&resultantAsm, value);
+                    }
+                    char* arrayName = getArrayName(arguments[i]);
+                    removeString(stackNameList, getItemInStackIndex(arrayName));
+                    free(arrayName);
+                    if (value[0] == '['){
+                        free(value);
+                    }
+                    if (currentGeneralRegister != 7){
+                        currentGeneralRegister = currentGeneralRegister + 1;
+                    } else {
+                        currentGeneralRegister = 0;
+                    }
+                    continue;
+
                 }
-
-                
-                // STILL HAVE TO DO IF THERE ISNT A REG AVALIABLE FOR FLOAT
-
             }
 
             break;
