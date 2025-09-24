@@ -1206,6 +1206,93 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
 }
 
 // parse function will go here
+char* parse(char* fileString, char splitter){
+    
+    char* resultantAsm = malloc(1);
+    resultantAsm[0] = '\0';
+    
+    bool commandStatus = true;
+    bool packStatus = false;
+    bool commentStatus = false;
+    
+    char* currentCommand = malloc(1);
+    currentCommand[0] = '\0';
+    char* currentArgument = malloc(1);
+    currentArgument[0] = '\0';
+    
+    int numArguments = 1;
+    int numPacks = 0;
+    
+    char* currentWord = malloc(1);
+    currentWord[0] = '\0';
+    
+    for (int i = 0; i < strlen(fileString); i++){
+        
+        if (fileString[i] == ' '){
+            if (strcmp(currentWord, "pack") == 0){
+                ++numPacks;
+            }
+        }
+        
+        appendChar(&currentWord, fileString[i]);
+    }
+    
+    free(currentWord);
+    
+    char* packs[numPacks];
+    for (int i = 0; i < numPacks; i++) {
+        packs[i] = malloc(1);
+        packs[i][0] = '\0';
+    }
+
+    int packsIndex = 0;
+    
+    for (int i = 0; i < strlen(fileString); i++){
+        char character = fileString[i];
+        
+    }
+    
+    for (int i = 0; i < strlen(fileString); i++){
+        if (!commentStatus){
+            if (fileString[i] == '`'){
+                commentStatus = !commentStatus;
+            }else if (fileString[i] == ' ' || fileString[i] == '\n' || fileString[i] == '{' ||fileString[i] == '}'){continue;} 
+            else if (fileString[i] == ':' && !packStatus){
+                commandStatus = false;
+                if (strcmp(currentCommand, "pack") == 0){
+                    packStatus = true;
+                    ++numArguments;
+                }
+            } else if (fileString[i] == splitter){
+                commandStatus = true;
+                packStatus = false;
+                char* j =asmConvert(currentCommand, currentArgument, numArguments, packs, numPacks, packsIndex);
+                append(&resultantAsm, j);
+                free(j);
+                currentCommand[0] = '\0';
+                currentArgument[0] = '\0';
+                numArguments = 0;
+            } else if (commandStatus){
+                appendChar(&currentCommand, fileString[i]);
+                
+            } else if (fileString[i] == ',' && !packStatus){
+                appendChar(&currentArgument, fileString[i]);
+                ++numArguments;
+            } else {
+                appendChar(&currentArgument, fileString[i]);
+            }
+        }
+        
+    }
+
+    for (int i = 0; i < numPacks; i++) {
+        free(packs[i]);
+    }
+
+    free(currentCommand);
+    free(currentArgument);
+    return resultantAsm;
+}
 
 int main(int argc, char* argv[]){
     srand(time(NULL));
@@ -1216,7 +1303,13 @@ int main(int argc, char* argv[]){
     floatArrayNameList = createStringList(0);
 
     // get file, store in string, and call parser
+    char* result = parse("int: $a, 76; prime: $a;", ';');
+    printf("%s", result);
+    free(result);
 
+    // result = parse("prime: $a;", ';');
+    // printf("%s", result);
+    // free(result);
     freeStringList(stackNameList);
     freeStringList(intNameList);
     freeStringList(floatNameList);
