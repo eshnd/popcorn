@@ -335,7 +335,6 @@ char* getCorrelation(char* varName, char** resultantAsm){
         free(index);
     }
 
-    free(arrayIndex);
     // FINAL IS INDEX, ARRAYNAME IS ARRAY
 
     if (final[0] != '\0'){
@@ -1342,7 +1341,7 @@ int main(int argc, char* argv[]){
     floatArrayNameList = createStringList(0);
 
     // get file, store in string, and call parser
-    char* result = parse("mode: 32BIT_PROTECTED; int: $a, 76; int: $b, 77;int: $c, 77;int: $d, 77;int: $e, 77;int: $f, 77;int: $g, 77; prime: $g;", ';');
+    char* result = parse("array: $a, {76, 87, 94, 11}; int: $b, $a@1;", ';');
     printf("%s", result);
     free(result);
 
