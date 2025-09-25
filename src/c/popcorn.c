@@ -107,6 +107,8 @@ stringList* floatNameList;
 stringList* intArrayNameList;
 stringList* floatArrayNameList;
 stringList* randomList;
+stringList* bundleList;
+
 
 char* parse(char* body, char splitter);
 
@@ -154,6 +156,7 @@ typedef enum {
     CHAR,
     ARRAYF,
     EXPEL,
+    BUNDLE,
     CMD_NOT_RECOGNIZED
 } command;
 
@@ -201,6 +204,7 @@ command getEnum(char *cmd) {
     if (strcmp(cmd, "char") == 0) return CHAR;
     if (strcmp(cmd, "arrayf") == 0) return ARRAYF;
     if (strcmp(cmd, "expel") == 0) return EXPEL;
+    if (strcmp(cmd, "bundle") == 0) return BUNDLE;
     return CMD_NOT_RECOGNIZED;
 }
 
@@ -1264,7 +1268,14 @@ mov ebp, esp");
             free(actualVar); // idk if these frees are valid but we'll see ig
             break;
         }
-        case EXPEL: {break;} // delete MULTIPLE values from stack (EDIT THIS LATER FOR STRING EDITING TOO)
+        case BUNDLE: {
+            for (int i = 0; i < sizeof(arguments) / sizeof(arguments[0]); i++){
+                appendString(bundleList, arguments[i]);
+            }
+        }
+        case EXPEL: {
+            break;
+        } // delete ONE values from stack (EDIT THIS LATER FOR STRING EDITING TOO -- OR JUST MAKE A STRING "BUNDLE")
         case ADD: {break;}
         case SUB: {break;}
         case MUL: {break;}
@@ -1453,6 +1464,7 @@ int main(int argc, char* argv[]){
     intArrayNameList = createStringList(0);
     floatArrayNameList = createStringList(0);
     randomList = createStringList(0);
+    bundleList = createStringList(0);
 
     // get file, store in string, and call parser
     char* result = parse(readFile(argv[1]), ';');
@@ -1488,4 +1500,5 @@ int main(int argc, char* argv[]){
     freeStringList(intArrayNameList);
     freeStringList(floatArrayNameList);
     freeStringList(randomList);
+    freeStringList(bundleList);
 }
