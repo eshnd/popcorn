@@ -1268,7 +1268,7 @@ mov ebp, esp");
             free(actualVar); // idk if these frees are valid but we'll see ig
             break;
         }
-        case BUNDLE: {
+        case BUNDLE: { // BUNDLE REQUIRES YOU TO INSTALL YOUR POPB BUNDLES WITH MAIZE, A PACKAGE MANAGER THAT CAN ALSO WORK USING REPOS ON INTERNET
             for (int i = 0; i < sizeof(arguments) / sizeof(arguments[0]); i++){
                 appendString(bundleList, arguments[i]);
             }
