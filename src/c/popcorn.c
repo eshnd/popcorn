@@ -204,6 +204,54 @@ command getEnum(char *cmd) {
     return CMD_NOT_RECOGNIZED;
 }
 
+char* bootloader(){
+    return "\n\
+org 0x7C00\n\
+bits 16\n\
+start:\n\
+cli\n\
+xor ax, ax\n\
+mov ds, ax\n\
+mov es, ax\n\
+mov ss, ax\n\
+mov sp, 0x7C00\n\
+mov [dap_num_sectors], word 127\n\
+mov [dap_offset], word 0x7E00\n\
+mov [dap_segment], word 0x0000\n\
+mov dword [dap_lba], 1\n\
+mov dword [dap_lba+4], 0\n\
+mov si, dap\n\
+mov ah, 0x42\n\
+mov dl, 0x80\n\
+int 0x13\n\
+jc disk_error\n\
+idx_53479354:\n\
+dw 4\n\
+loop_2054387:\n\
+add dword [dap_lba], 127\n\
+mov cx, 127\n\
+advance_offset1:\n\
+add word [dap_offset], 512\n\
+loop advance_offset1\n\
+mov word [dap_num_sectors], 127\n\
+int 0x13\n\
+jc disk_error\n\
+sub word [idx_53479354], 1\n\
+cmp word [idx_53479354], 0\n\
+jne loop_2054387\n\
+jmp 0x0000:0x7E00\n\
+disk_error:\n\
+hlt\n\
+dap:\n\
+dap_size:       db 0x10\n\
+dap_reserved:   db 0\n\
+dap_num_sectors: dw 0\n\
+dap_offset:     dw 0\n\
+dap_segment:    dw 0\n\
+dap_lba:        dq 0\n\
+times 510-($-$$) db 0\n\
+dw 0xAA55";
+}
 
 char* getNextEmptyGeneralRegister(){
     for (int i = 0; i < 6; i++){
@@ -1340,6 +1388,64 @@ char* parse(char* fileString, char splitter){
     return resultantAsm;
 }
 
+char* readFile(const char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (!file) {
+        perror("file doesnt exist");
+        return NULL;
+    }
+    fseek(file, 0, SEEK_END);
+    long length = ftell(file);
+    fseek(file, 0, SEEK_SET); 
+
+    char* buffer = malloc(length + 1);
+    fread(buffer, 1, length, file);
+    buffer[length] = '\0';
+    fclose(file);
+    return buffer;
+}
+
+int writeFile(const char* filename, const char* content) {
+    FILE* file = fopen(filename, "w");  
+    if (fputs(content, file) == EOF) {
+        fclose(file);
+        return 0; 
+    }
+    fclose(file);
+    return 1;
+}
+
+void createDisk(const char* disk_name, size_t block_size, size_t count) {
+    FILE* disk = fopen(disk_name, "wb");
+    char* buffer = calloc(block_size, 1); 
+    for (size_t i = 0; i < count; i++) {
+        if (fwrite(buffer, 1, block_size, disk) != block_size) {
+            free(buffer);
+            fclose(disk);
+            exit(1);
+        }
+    }
+    free(buffer);
+    fclose(disk);
+}
+
+void writeDisk(const char* disk_name, const char* file_name, size_t block_size, size_t seek_blocks) {
+    FILE* disk = fopen(disk_name, "r+b"); 
+    FILE* file = fopen(file_name, "rb");
+    fseek(disk, block_size * seek_blocks, SEEK_SET);
+    char buffer[512];
+    size_t n;
+    while ((n = fread(buffer, 1, sizeof(buffer), file)) > 0) {
+        if (fwrite(buffer, 1, n, disk) != n) {
+            fclose(file);
+            fclose(disk);
+            exit(1);
+        }
+    }
+    fclose(file);
+    fclose(disk);
+}
+
 int main(int argc, char* argv[]){
     srand(time(NULL));
     stackNameList = createStringList(0);
@@ -1350,8 +1456,28 @@ int main(int argc, char* argv[]){
     randomList = createStringList(0);
 
     // get file, store in string, and call parser
-    char* result = parse("mode: 32BIT_PROTECTED; array: $a, {76, 2, 94, 11}; inject: $a@1, 7;", ';');
-    printf("%s", result);
+    char* result = parse(readFile(argv[1]), ';');
+    writeFile(".__pop__.asm", result);
+    writeFile(".__pop_boot__.asm", bootloader());
+    // char nasmCall[100];
+    // sprintf(nasmCall, "nasm -f bin .__pop__.asm -o .__pop__.bin", argv[2]);
+    
+    createDisk(argv[2], 512, 200);
+    
+    system("nasm -f bin .__pop__.asm -o .__pop__.bin");
+    system("nasm -f bin .__pop_boot__.asm -o .__pop_boot__.bin");
+
+    writeDisk(argv[2], ".__pop_boot__.bin", 512, 0);
+    writeDisk(argv[2], ".__pop__.bin", 512, 1);
+
+    if (argc == 3){
+        remove(".__pop__.asm");
+    } else {
+        rename(".__pop__.asm", argv[3]);
+    }
+    remove(".__pop_boot__.asm");
+    remove(".__pop_boot__.bin");
+    remove(".__pop__.bin");
     free(result);
 
     // result = parse("prime: $a;", ';');
