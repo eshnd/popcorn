@@ -770,8 +770,7 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
     switch (getEnum(currentCommand)){
         case MODE: {
             if (strcmp(arguments[0], "32BIT_PROTECTED") == 0){
-                append(&resultantAsm, "\n\
-org 0x7E00\n\
+                append(&resultantAsm, "org 0x7E00\n\
 start:\n\
 cli\n\
 xor ax, ax\n\
