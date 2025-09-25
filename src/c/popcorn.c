@@ -1361,16 +1361,15 @@ char* parse(char* fileString, char splitter){
         if (!commentStatus){
             if (fileString[i] == '`'){
                 commentStatus = !commentStatus;
-            }else if (fileString[i] == ' ' || fileString[i] == '\n' || fileString[i] == '{' ||fileString[i] == '}'){continue;} 
+            }else if (fileString[i] == ' ' || fileString[i] == '\n' || fileString[i] == '{' ||fileString[i] == '}' ||fileString[i] == '&'){continue;} 
             else if (fileString[i] == ':' && !packStatus){
                 commandStatus = false;
                 if (strcmp(currentCommand, "pack") == 0){
                     packStatus = true;
                     ++numArguments;
                 }
-            } else if (fileString[i] == splitter){
+            } else if (fileString[i] == splitter && !packStatus){
                 commandStatus = true;
-                packStatus = false;
                 
                 char* j =asmConvert(currentCommand, currentArgument, numArguments, packs, numPacks, packsIndex);
                 append(&resultantAsm, j);
@@ -1378,6 +1377,21 @@ char* parse(char* fileString, char splitter){
                 currentCommand[0] = '\0';
                 currentArgument[0] = '\0';
                 numArguments = 1;
+            }else if (fileString[i] == splitter){
+               if (i + 1 < strlen(fileString)){
+                  if (fileString[i+1] == '&'){
+                     commandStatus = true;
+                     packStatus = false;
+                
+                     char* j =asmConvert(currentCommand, currentArgument, numArguments, packs, numPacks, packsIndex);
+                     append(&resultantAsm, j);
+                     free(j);
+                     currentCommand[0] = '\0';
+                     currentArgument[0] = '\0';
+                     numArguments = 1;
+                  }
+               }
+               
             } else if (commandStatus){
                 appendChar(&currentCommand, fileString[i]);
                 
