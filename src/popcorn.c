@@ -56,7 +56,7 @@ void appendString(stringList* list, const char* str) {
 
 void removeString(stringList* list, size_t index) {
     if (index >= list->size) {
-        fprintf(stderr, "Index out of bounds: %zu\n", index);
+        fprintf(stderr, "out of bounds: %zu\n", index);
         return;
     }
 
@@ -69,6 +69,25 @@ void removeString(stringList* list, size_t index) {
 
     list->size--; 
 }
+
+void insertStringAfter(stringList* list, size_t index, const char* str) {
+    if (index >= list->size) {
+        fprintf(stderr, "out of bounds: %zu\n", index);
+        return;
+    }
+    if (list->size >= list->capacity) {
+        size_t newCapacity = (list->capacity == 0) ? 1 : list->capacity * 2;
+        list->data = realloc(list->data, newCapacity * sizeof(char*));
+        list->capacity = newCapacity;
+    }
+
+    for (size_t i = list->size; i > index + 1; i--) {
+        list->data[i] = list->data[i - 1];
+    }
+    list->data[index + 1] = strdup(str);
+    list->size++;
+}
+
 
 void freeStringList(stringList* list) { // FREE IT WHEN DONE
 
@@ -503,32 +522,15 @@ char* getSacrificialCorrelation(char* varName, char** resultantAsm){
         for (int i = 0; i < stackNameList->size; i++){
             if (strcmp(stackNameList->data[i], arrayName) == 0){
                 int j = i * 4;
-                if (final[0] != 'e'){
-                    int size = snprintf(NULL, 0, "[ebp - %d - %s*4]", j, final) + 1;
-                    char* str = malloc(size);
+                int size = snprintf(NULL, 0, "[ebp - %d - %s*4]", j, final) + 1;
+                char* str = malloc(size);
 
-                    sprintf(str, "[ebp - %d - %s*4]", j, final);
+                sprintf(str, "[ebp - %d - %s*4]", j, final); // no bracket to make it easier to append stuff
 
-                    free(final);
-                    free(arrayName);
-                    return str;
-                } else {
-                    int size = snprintf(NULL, 0, "[ebp - %d - %s*4]", j, final) + 1;
-                    char* str = malloc(size);
+                free(final);
+                free(arrayName);
+                return str;
 
-                    sprintf(str, "[ebp - %d - %s*4]", j, final);
-                    append(resultantAsm, "\npush dword ");
-                    appendString(stackNameList, "__POPCORN_RESERVED__");
-                    append(resultantAsm, str);
-                    if (popback) {
-                        append(resultantAsm, "\nmov eax, [esp + 4]");
-                    }
-                    sprintf(str, "[esp]"); // pretty sure this is how this works
-                    free(final);
-                    free(arrayName);
-                    return str;
-                }
-                
                 
             }
         }
@@ -771,7 +773,8 @@ dd gdt\n\
 gdt_end:\n\
 CODE_SEL equ 0x08\n\
 DATA_SEL equ 0x10\n\
-section .text");
+section .text\n\
+mov ebp, esp");
                 break;
             }
         }
@@ -1172,16 +1175,30 @@ section .text");
 
             break;
         }
-        case INJECT: {
-            // move register 1 eax to stack in both asm and c
-            // call sacrificial correlation on argument 0
-            // call normal correlation on every other argument
-            // subtract esp by 4
-            // loop through every value after the [ebp] address of argument 0 until the last value is equal to [esp]
-            // finally, insert point
-            
+        case INJECT: { // INJECT ONE VALUE INTO STACK
+            appendString(stackNameList, generalRegisters[0]);
+            appendString(stackNameList, generalRegisters[1]);
+            appendString(stackNameList, generalRegisters[2]);
+            append(&resultantAsm, "\npush eax\npush ebx\npush ecx\nmov ebx, esp\nsub esp, 4");
+            char str[300];
+            append(&resultantAsm, str);
+            generalRegisters[0] = "none";
+            generalRegisters[1] = "none";
+            generalRegisters[2] = "none";
+            char* leftVar = getSacrificialCorrelation(arguments[0], &resultantAsm);
+            int r1 = rand(); // add rand to list of rands !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            str[0] = '\0';
+            sprintf(str, "\nlea eax, %s\nsub eax, 4\ninjection_label_%d:\nmov ecx, [ebx + 4]\nmov [ebx], ecx\nadd ebx, 4\ncmp eax, ebx\njne injection_label_%d", leftVar, r1, r1); 
+            append(&resultantAsm, str);
+            str[0] = '\0';
+            insertStringAfter(stackNameList, getItemInStackIndex(getArrayName(arguments[0])), getArrayName(arguments[0]));
+            char* actualVar = getCorrelation(arguments[1], &resultantAsm);
+            sprintf(str, "\nmov dword [eax], %s", actualVar); 
+            append(&resultantAsm, str);
+            free(leftVar);
+            free(actualVar); // idk if these frees are valid but we'll see ig
             break;
-        } // inject MULTIPLE values into stack (EDIT THIS LATER FOR STRING EDITING TOO)
+        }
         case EXPEL: {break;} // delete MULTIPLE values from stack (EDIT THIS LATER FOR STRING EDITING TOO)
         case ADD: {break;}
         case SUB: {break;}
@@ -1313,7 +1330,7 @@ int main(int argc, char* argv[]){
     floatArrayNameList = createStringList(0);
 
     // get file, store in string, and call parser
-    char* result = parse("mode: 32BIT_PROTECTED; array: $a, {76, 2, 94, 11}; array: $b, {1, 2, 3}; int: $c, $a@$b@0;", ';');
+    char* result = parse("mode: 32BIT_PROTECTED; array: $a, {76, 2, 94, 11}; inject: $a@1, 7;", ';');
     printf("%s", result);
     free(result);
 
