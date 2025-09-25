@@ -1456,27 +1456,27 @@ int main(int argc, char* argv[]){
 
     // get file, store in string, and call parser
     char* result = parse(readFile(argv[1]), ';');
-    writeFile(".__pop__.asm", result);
-    writeFile(".__pop_boot__.asm", bootloader());
+    writeFile(".__pop__.popc", result);
+    writeFile(".__pop_boot__.popc", bootloader());
     // char nasmCall[100];
     // sprintf(nasmCall, "nasm -f bin .__pop__.asm -o .__pop__.bin", argv[2]);
     
     createDisk(argv[2], 512, 200);
     
-    system("nasm -f bin .__pop__.asm -o .__pop__.bin");
-    system("nasm -f bin .__pop_boot__.asm -o .__pop_boot__.bin");
+    system("nasm -f bin .__pop__.popc -o .__pop__.popcb");
+    system("nasm -f bin .__pop_boot__.popc -o .__pop_boot__.popcb");
 
-    writeDisk(argv[2], ".__pop_boot__.bin", 512, 0);
-    writeDisk(argv[2], ".__pop__.bin", 512, 1);
+    writeDisk(argv[2], ".__pop_boot__.popcb", 512, 0);
+    writeDisk(argv[2], ".__pop__.popcb", 512, 1);
 
     if (argc == 3){
-        remove(".__pop__.asm");
+        remove(".__pop__.popc");
     } else {
-        rename(".__pop__.asm", argv[3]);
+        rename(".__pop__.popc", argv[3]);
     }
-    remove(".__pop_boot__.asm");
-    remove(".__pop_boot__.bin");
-    remove(".__pop__.bin");
+    remove(".__pop_boot__.popc");
+    remove(".__pop_boot__.popcb");
+    remove(".__pop__.popcb");
     free(result);
 
     // result = parse("prime: $a;", ';');
