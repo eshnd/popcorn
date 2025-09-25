@@ -536,7 +536,6 @@ char* getSacrificialCorrelation(char* varName, char** resultantAsm){
     char* index;
     char* final = malloc(1);
     final[0] = '\0';
-    bool popback = false;
 
     if (isIndex){
         index = getCorrelation(arrayIndex, resultantAsm);
@@ -561,7 +560,6 @@ char* getSacrificialCorrelation(char* varName, char** resultantAsm){
                 // appendString(stackNameList, "__POPCORN_RESERVED__");
                 // append(resultantAsm, "\npush eax\nmov eax, [esp + 4]");
                 append(&final, "eax");
-                popback = true;
             }
         } else{
             append(&final, index);
@@ -751,7 +749,16 @@ bool inRandomList(char* randomNum){
     return false;
 }
 
-char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, char** packs, int numPacks, int packsIndex){ // PAY ATTENTION: FREE THIS AFTER YOU CALL IT NO MATTER WHAT
+int getIndexOfStringInArray(char* varName, char* arrayName[], int arrayLen){
+    for (int i = 0; i < arrayLen; i++){
+        if (strcmp(varName, arrayName[i]) == 0){
+            return i;
+        }
+    }
+    return -1;
+}
+
+char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, char* packs[], char* packNames[], int numPacks, int* packsIndex){ // PAY ATTENTION: FREE THIS AFTER YOU CALL IT NO MATTER WHAT
     
     char* resultantAsm = malloc(1);
     resultantAsm[0] = '\0';
@@ -766,6 +773,10 @@ char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, 
     for (int i = 0; i < strlen(currentArgument); i++){
         if (currentArgument[i] == ','){
             ++argumentIndex;
+            if (argumentIndex == numArguments){
+                --argumentIndex;
+                appendChar(&arguments[argumentIndex], currentArgument[i]);
+            }
         } else {
             appendChar(&arguments[argumentIndex], currentArgument[i]); // combine current argument at this with this new character
         }
@@ -1301,8 +1312,19 @@ mov ebp, esp");
         case CHAR: {break;} // treat like integer, literally just a byte
         case STRING: {break;}
         case EDIT: {break;}
-        case PACK: {break;}
-        case CALL: {break;}
+        case PACK: {
+// char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, char* packs[], char* packNames[], int numPacks, int* packsIndex){ // PAY ATTENTION: FREE THIS AFTER YOU CALL IT NO MATTER WHAT
+            packNames[*packsIndex] = arguments[0];
+            packs[*packsIndex] = arguments[1];
+            *packsIndex = *packsIndex + 1;
+            break;
+            
+        }
+        case CALL: {
+            append(&resultantAsm, parse(packs[getIndexOfStringInArray(arguments[0], packNames, numPacks)], ';'));
+            break;
+            
+        }
         case IF: {break;}
         case WHILE: {break;}
         case RECT: {break;}
@@ -1340,19 +1362,31 @@ char* parse(char* fileString, char splitter){
     currentWord[0] = '\0';
     
     for (int i = 0; i < strlen(fileString); i++){
-        
-        if (fileString[i] == ' '){
-            if (strcmp(currentWord, "pack") == 0){
-                ++numPacks;
+        if (!commentStatus){
+            if (fileString[i] == '`'){
+                commentStatus = !commentStatus;
+            }else if (fileString[i] == ' ' || fileString[i] == '\n' || fileString[i] == '{' ||fileString[i] == '}' ||fileString[i] == '&'){continue;} 
+            else if (fileString[i] == ';'){
+                commandStatus = true;
+                if (strcmp(currentWord, "pack") == 0){
+                    ++numPacks;
+                    currentWord[0] = '\0';
+                }
+            } else if (fileString[i] == ':'){
+                commandStatus = false;
+            }
+            else if (commandStatus){
+                appendChar(&currentWord, fileString[i]);
             }
         }
-        
-        appendChar(&currentWord, fileString[i]);
     }
-    
+
     free(currentWord);
     
     char* packs[numPacks];
+    char* packNames[numPacks];
+    commandStatus = true;
+    commentStatus = false;
 
     int packsIndex = 0;
     
@@ -1371,7 +1405,7 @@ char* parse(char* fileString, char splitter){
             } else if (fileString[i] == splitter && !packStatus){
                 commandStatus = true;
                 
-                char* j =asmConvert(currentCommand, currentArgument, numArguments, packs, numPacks, packsIndex);
+                char* j = asmConvert(currentCommand, currentArgument, numArguments, packs, packNames, numPacks, &packsIndex);
                 append(&resultantAsm, j);
                 free(j);
                 currentCommand[0] = '\0';
@@ -1382,13 +1416,17 @@ char* parse(char* fileString, char splitter){
                   if (fileString[i+1] == '&'){
                      commandStatus = true;
                      packStatus = false;
-                
-                     char* j =asmConvert(currentCommand, currentArgument, numArguments, packs, numPacks, packsIndex);
+                    // char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, char* packs[], char* packNames[], int numPacks, int* packsIndex){ // PAY ATTENTION: FREE THIS AFTER YOU CALL IT NO MATTER WHAT
+                     char* j = asmConvert(currentCommand, currentArgument, numArguments, packs, packNames, numPacks, &packsIndex);
                      append(&resultantAsm, j);
                      free(j);
                      currentCommand[0] = '\0';
                      currentArgument[0] = '\0';
                      numArguments = 1;
+                  } else if (commandStatus){
+                    appendChar(&currentCommand, fileString[i]);
+                  } else {
+                      appendChar(&currentArgument, fileString[i]);
                   }
                }
                
@@ -1407,8 +1445,6 @@ char* parse(char* fileString, char splitter){
 
 
     free(currentCommand);
-    free(currentArgument);
-    append(&resultantAsm, "\nhlt");
     return resultantAsm;
 }
 
@@ -1469,7 +1505,6 @@ void writeDisk(const char* disk_name, const char* file_name, size_t block_size, 
     fclose(file);
     fclose(disk);
 }
-
 int main(int argc, char* argv[]){
     srand(time(NULL));
     stackNameList = createStringList(0);
