@@ -1,9 +1,9 @@
 <p align="center">
-  <a href="https://github.com/eshnd/popcorn/wiki"><img src="https://github.com/eshnd/eshnd.github.io/blob/main/oie_Sgc9BCE3cEmF.png?raw=true" alt="Logo" height=170></a>
+  <a href="https://github.com/eshnd/popcorn/wiki/Documentation"><img src="https://github.com/eshnd/eshnd.github.io/blob/main/oie_Sgc9BCE3cEmF.png?raw=true" alt="Logo" height=170></a>
 </p>
 <p align="center">A programming language to write x86 os kernels<br>(by <a href="https://eshnd.github.io/">@eshnd</a>)<p>
   
-### [Read the docs →](https://github.com/eshnd/popcorn/wiki)
+### [Read the docs →](https://github.com/eshnd/popcorn/wiki/Documentation)
 ## About
 I made this language mostly for fun, but I also think it could be useful! It comes with a bootloader, native dynamic memory management, and optimizations wherever possible.
 ## Install
