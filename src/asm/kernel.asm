@@ -60,4 +60,8 @@ CODE_SEL equ 0x08
 DATA_SEL equ 0x10
 section .text
 mov ebp, esp
-hlt
+mov eax, 3
+mov ebx, 4
+mov ecx, 5
+mov edx, 6
+mov edi, 8
