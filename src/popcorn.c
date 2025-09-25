@@ -106,6 +106,7 @@ stringList* intNameList;
 stringList* floatNameList;
 stringList* intArrayNameList;
 stringList* floatArrayNameList;
+stringList* randomList;
 
 char* parse(char* body, char splitter);
 
@@ -689,6 +690,15 @@ int getType(char* varName){
     return -1;
 }
 
+bool inRandomList(char* randomNum){
+    for (int i = 0; i < randomList->size; i++){
+        if (strcmp(randomList->data[i], randomNum) == 0){
+            return true;
+        }
+    }
+    return false;
+}
+
 char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, char** packs, int numPacks, int packsIndex){ // PAY ATTENTION: FREE THIS AFTER YOU CALL IT NO MATTER WHAT
     
     char* resultantAsm = malloc(1);
@@ -1188,6 +1198,14 @@ mov ebp, esp");
             char* leftVar = getSacrificialCorrelation(arguments[0], &resultantAsm);
             int r1 = rand(); // add rand to list of rands !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             str[0] = '\0';
+            sprintf(str, "%d", r1);
+            while(inRandomList(str)){
+                r1 = rand();
+                str[0] = '\0';
+                sprintf(str, "%d", r1); // i havent looked at the assembly for this so if this blows up im gonna be sad lol
+            }
+
+            str[0] = '\0';
             sprintf(str, "\nlea eax, %s\nsub eax, 4\ninjection_label_%d:\nmov ecx, [ebx + 4]\nmov [ebx], ecx\nadd ebx, 4\ncmp eax, ebx\njne injection_label_%d", leftVar, r1, r1); 
             append(&resultantAsm, str);
             str[0] = '\0';
@@ -1328,6 +1346,7 @@ int main(int argc, char* argv[]){
     floatNameList = createStringList(0);
     intArrayNameList = createStringList(0);
     floatArrayNameList = createStringList(0);
+    randomList = createStringList(0);
 
     // get file, store in string, and call parser
     char* result = parse("mode: 32BIT_PROTECTED; array: $a, {76, 2, 94, 11}; inject: $a@1, 7;", ';');
@@ -1342,4 +1361,5 @@ int main(int argc, char* argv[]){
     freeStringList(floatNameList);
     freeStringList(intArrayNameList);
     freeStringList(floatArrayNameList);
+    freeStringList(randomList);
 }
