@@ -759,6 +759,36 @@ int getIndexOfStringInArray(char* varName, char* arrayName[], int arrayLen){
     return 0;
 }
 
+void replace(char **str, const char *old, const char *new) {
+    char *input = *str;
+    size_t str_len = strlen(input);
+    size_t old_len = strlen(old);
+    size_t new_len = strlen(new);
+
+    if (old_len == 0) return; 
+    size_t count = 0;
+    for (char *tmp = input; (tmp = strstr(tmp, old)); tmp += old_len)
+        count++;
+    if (count == 0) return;
+    size_t new_size = str_len + count * (new_len - old_len) + 1;
+    char *result = malloc(new_size);
+    if (!result) return;
+    char *dst = result;
+    char *src = input;
+    char *match;
+    while ((match = strstr(src, old))) {
+        size_t len = match - src;
+        memcpy(dst, src, len);
+        dst += len;
+        memcpy(dst, new, new_len);
+        dst += new_len;
+        src = match + old_len;
+    }
+    strcpy(dst, src);
+    free(*str);
+    *str = result;
+}
+
 char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, char* packs[], char* packNames[], int numPacks, int* packsIndex){ // PAY ATTENTION: FREE THIS AFTER YOU CALL IT NO MATTER WHAT
     
     char* resultantAsm = malloc(1);
@@ -1331,6 +1361,11 @@ mov ebp, esp");
                  }
             }
             char* jx = parse(packs[idx], ';');
+            for (int i = 1; i < sizeof(arguments) / sizeof(arguments[0]); i++){
+                char str[20];
+                sprintf(str, "#%d", i);
+                replace(&jx, str, arguments[i]);
+            }
             append(&resultantAsm, jx);
             free(jx);
             break;
@@ -1452,6 +1487,8 @@ char* parse(char* fileString, char splitter){
             } else {
                 appendChar(&currentArgument, fileString[i]);
             }
+        } else if (fileString[i] == '`'){
+            commentStatus = !commentStatus;
         }
         
     }
