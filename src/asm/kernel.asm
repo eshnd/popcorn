@@ -65,4 +65,9 @@ mov eax, __float32__(3.14)
 movd xmm0, eax
 pop eax
 movss xmm1, xmm0
-hlt
+mov eax, 7
+mov ebx, 8
+mov ecx, 9
+mov edx, 10
+mov edi, 11
+mov esi, 12

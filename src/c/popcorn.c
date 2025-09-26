@@ -247,6 +247,7 @@ command getEnum(char *cmd) {
     if (strcmp(cmd, "edit") == 0) return EDIT;
     if (strcmp(cmd, "pack") == 0) return PACK;
     if (strcmp(cmd, "call") == 0) return CALL;
+    if (strcmp(cmd, "=") == 0) return CALL;
     if (strcmp(cmd, "if") == 0) return IF;
     if (strcmp(cmd, "while") == 0) return WHILE;
     if (strcmp(cmd, "rect") == 0) return RECT;
@@ -1391,7 +1392,10 @@ mov ebp, esp");
             free(varToRemove);
             break;
         } // delete ONE values from stack (EDIT THIS LATER FOR END EDITING TOO -- OR JUST MAKE A END "BUNDLE")
-        case ADD: {break;}
+        case ADD: {
+            
+            break;
+        }
         case SUB: {break;}
         case MUL: {break;}
         case DIV: {break;}

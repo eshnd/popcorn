@@ -1,3 +1,4 @@
 mode: 32BIT_PROTECTED;
 
 float: $get_pi, $math.pi;
+=: $math.&fillRegisters, 7, 8, 9, 10, 11, 12;
