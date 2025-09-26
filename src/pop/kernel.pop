@@ -1,3 +1,1 @@
 mode: 32BIT_PROTECTED;
-
-call: example.example_pack, 3, 4, 5, $example.pi, 8;
