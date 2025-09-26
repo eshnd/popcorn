@@ -1,1 +1,3 @@
 mode: 32BIT_PROTECTED;
+
+float: $get_pi, $math.pi;
