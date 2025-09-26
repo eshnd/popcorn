@@ -1362,7 +1362,6 @@ mov ebp, esp");
             sprintf(str, "\nmov dword [eax], %s", actualVar); 
             append(&resultantAsm, str);
             free(leftVar);
-            free(actualVar); // idk if these frees are valid but we'll see ig
             break;
         }
         case EXPEL: {
