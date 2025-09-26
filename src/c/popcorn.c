@@ -110,6 +110,64 @@ stringList* randomList;
 stringList* bundleList;
 
 
+char* readFile(const char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (!file) {
+        perror("file doesnt exist");
+        return NULL;
+    }
+    fseek(file, 0, SEEK_END);
+    long length = ftell(file);
+    fseek(file, 0, SEEK_SET); 
+
+    char* buffer = malloc(length + 1);
+    fread(buffer, 1, length, file);
+    buffer[length] = '\0';
+    fclose(file);
+    return buffer;
+}
+
+int writeFile(const char* filename, const char* content) {
+    FILE* file = fopen(filename, "w");  
+    if (fputs(content, file) == EOF) {
+        fclose(file);
+        return 0; 
+    }
+    fclose(file);
+    return 1;
+}
+
+void createDisk(const char* disk_name, size_t block_size, size_t count) {
+    FILE* disk = fopen(disk_name, "wb");
+    char* buffer = calloc(block_size, 1); 
+    for (size_t i = 0; i < count; i++) {
+        if (fwrite(buffer, 1, block_size, disk) != block_size) {
+            free(buffer);
+            fclose(disk);
+            exit(1);
+        }
+    }
+    free(buffer);
+    fclose(disk);
+}
+
+void writeDisk(const char* disk_name, const char* file_name, size_t block_size, size_t seek_blocks) {
+    FILE* disk = fopen(disk_name, "r+b"); 
+    FILE* file = fopen(file_name, "rb");
+    fseek(disk, block_size * seek_blocks, SEEK_SET);
+    char buffer[512];
+    size_t n;
+    while ((n = fread(buffer, 1, sizeof(buffer), file)) > 0) {
+        if (fwrite(buffer, 1, n, disk) != n) {
+            fclose(file);
+            fclose(disk);
+            exit(1);
+        }
+    }
+    fclose(file);
+    fclose(disk);
+}
+
 char* parse(char* body, char splitter);
 
 typedef enum {
@@ -156,7 +214,6 @@ typedef enum {
     CHAR,
     ARRAYF,
     EXPEL,
-    BUNDLE,
     CMD_NOT_RECOGNIZED
 } command;
 
@@ -204,7 +261,6 @@ command getEnum(char *cmd) {
     if (strcmp(cmd, "char") == 0) return CHAR;
     if (strcmp(cmd, "arrayf") == 0) return ARRAYF;
     if (strcmp(cmd, "expel") == 0) return EXPEL;
-    if (strcmp(cmd, "bundle") == 0) return BUNDLE;
     return CMD_NOT_RECOGNIZED;
 }
 
@@ -1310,11 +1366,6 @@ mov ebp, esp");
             free(actualVar); // idk if these frees are valid but we'll see ig
             break;
         }
-        case BUNDLE: { // BUNDLE REQUIRES YOU TO INSTALL YOUR POPB BUNDLES WITH MAIZE, A PACKAGE MANAGER THAT CAN ALSO WORK USING REPOS ON INTERNET
-            for (int i = 0; i < sizeof(arguments) / sizeof(arguments[0]); i++){
-                appendString(bundleList, arguments[i]);
-            }
-        }
         case EXPEL: {
             break;
         } // delete ONE values from stack (EDIT THIS LATER FOR STRING EDITING TOO -- OR JUST MAKE A STRING "BUNDLE")
@@ -1495,64 +1546,6 @@ char* parse(char* fileString, char splitter){
 
     free(currentCommand);
     return resultantAsm;
-}
-
-char* readFile(const char* filename) {
-    FILE* file = fopen(filename, "r");
-    if (!file) {
-        perror("file doesnt exist");
-        return NULL;
-    }
-    fseek(file, 0, SEEK_END);
-    long length = ftell(file);
-    fseek(file, 0, SEEK_SET); 
-
-    char* buffer = malloc(length + 1);
-    fread(buffer, 1, length, file);
-    buffer[length] = '\0';
-    fclose(file);
-    return buffer;
-}
-
-int writeFile(const char* filename, const char* content) {
-    FILE* file = fopen(filename, "w");  
-    if (fputs(content, file) == EOF) {
-        fclose(file);
-        return 0; 
-    }
-    fclose(file);
-    return 1;
-}
-
-void createDisk(const char* disk_name, size_t block_size, size_t count) {
-    FILE* disk = fopen(disk_name, "wb");
-    char* buffer = calloc(block_size, 1); 
-    for (size_t i = 0; i < count; i++) {
-        if (fwrite(buffer, 1, block_size, disk) != block_size) {
-            free(buffer);
-            fclose(disk);
-            exit(1);
-        }
-    }
-    free(buffer);
-    fclose(disk);
-}
-
-void writeDisk(const char* disk_name, const char* file_name, size_t block_size, size_t seek_blocks) {
-    FILE* disk = fopen(disk_name, "r+b"); 
-    FILE* file = fopen(file_name, "rb");
-    fseek(disk, block_size * seek_blocks, SEEK_SET);
-    char buffer[512];
-    size_t n;
-    while ((n = fread(buffer, 1, sizeof(buffer), file)) > 0) {
-        if (fwrite(buffer, 1, n, disk) != n) {
-            fclose(file);
-            fclose(disk);
-            exit(1);
-        }
-    }
-    fclose(file);
-    fclose(disk);
 }
 
 int main(int argc, char* argv[]){

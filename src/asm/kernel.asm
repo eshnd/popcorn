@@ -1,3 +1,8 @@
+
+push eax
+mov eax, __float32__(3.14)
+movd xmm0, eax
+pop eax
 org 0x7E00
 start:
 cli
@@ -60,8 +65,3 @@ CODE_SEL equ 0x08
 DATA_SEL equ 0x10
 section .text
 mov ebp, esp
-mov eax, 3
-mov ebx, 4
-mov ecx, 5
-mov edx, 6
-mov edi, 8

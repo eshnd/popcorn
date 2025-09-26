@@ -1,11 +1,3 @@
 mode: 32BIT_PROTECTED;
 
-pack: example,
-    int: $var1, #1;
-    int: $var2, #2;
-    int: $var0, #3;
-    int: $var9, #4;
-    int: $var5, #5;
-;&
-
-call: example, 3, 4, 5, 6, 8;
+call: example.example_pack, 3, 4, 5, $example.pi, 8;
