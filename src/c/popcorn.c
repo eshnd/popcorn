@@ -1340,7 +1340,6 @@ mov ebp, esp");
             appendString(stackNameList, generalRegisters[2]);
             append(&resultantAsm, "\npush eax\npush ebx\npush ecx\nmov ebx, esp\nsub esp, 4");
             char str[300];
-            append(&resultantAsm, str);
             generalRegisters[0] = "none";
             generalRegisters[1] = "none";
             generalRegisters[2] = "none";
@@ -1367,6 +1366,30 @@ mov ebp, esp");
             break;
         }
         case EXPEL: {
+            appendString(stackNameList, generalRegisters[0]);
+            appendString(stackNameList, generalRegisters[1]);
+            appendString(stackNameList, generalRegisters[2]);
+            append(&resultantAsm, "\npush eax\npush ebx\npush ecx\nadd esp, 4\nmov ebx, esp");
+            char str[300];
+            generalRegisters[0] = "none";
+            generalRegisters[1] = "none";
+            generalRegisters[2] = "none";
+            char* varToRemove = getSacrificialCorrelation(arguments[0], &resultantAsm);
+            int r1 = rand(); // add rand to list of rands !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            str[0] = '\0';
+            sprintf(str, "%d", r1);
+            while(inRandomList(str)){
+                r1 = rand();
+                str[0] = '\0';
+                sprintf(str, "%d", r1); // i havent looked at the assembly for this so if this blows up im gonna be sad lol
+            }
+
+            str[0] = '\0';
+            sprintf(str, "\nlea eax, %s\ninjection_label_%d:\nmov ecx, [ebx - 4]\nmov [ebx], ecx\nadd ebx, 4\ncmp eax, ebx\njne injection_label_%d\nmov ecx, [ebx - 4]\nmov [ebx], ecx\nadd ebx, 4", varToRemove, r1, r1); 
+            append(&resultantAsm, str);// ^^ loop doesnt loop properly
+            str[0] = '\0';
+            removeString(stackNameList, getItemInStackIndex(getArrayName(arguments[0])));
+            free(varToRemove);
             break;
         } // delete ONE values from stack (EDIT THIS LATER FOR STRING EDITING TOO -- OR JUST MAKE A STRING "BUNDLE")
         case ADD: {break;}
