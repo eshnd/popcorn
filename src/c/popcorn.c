@@ -213,7 +213,7 @@ typedef enum {
     END,
     CHAR,
     ARRAYF,
-    EXPEL,
+    EJECT,
     CMD_NOT_RECOGNIZED
 } command;
 
@@ -260,7 +260,7 @@ command getEnum(char *cmd) {
     if (strcmp(cmd, "end") == 0) return END;
     if (strcmp(cmd, "char") == 0) return CHAR;
     if (strcmp(cmd, "arrayf") == 0) return ARRAYF;
-    if (strcmp(cmd, "expel") == 0) return EXPEL;
+    if (strcmp(cmd, "eject") == 0) return EJECT;
     return CMD_NOT_RECOGNIZED;
 }
 
@@ -1364,7 +1364,7 @@ mov ebp, esp");
             free(leftVar);
             break;
         }
-        case EXPEL: {
+        case EJECT: {
             appendString(stackNameList, generalRegisters[0]);
             appendString(stackNameList, generalRegisters[1]);
             appendString(stackNameList, generalRegisters[2]);
