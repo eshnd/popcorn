@@ -1,8 +1,4 @@
 
-push eax
-mov eax, __float32__(3.14)
-movd xmm0, eax
-pop eax
 org 0x7E00
 start:
 cli
