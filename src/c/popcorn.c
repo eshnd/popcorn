@@ -1545,6 +1545,7 @@ char* parse(char* fileString, char splitter){
     }
 
     free(currentCommand);
+    append(&resultantAsm, "\nhlt");
     return resultantAsm;
 }
 
