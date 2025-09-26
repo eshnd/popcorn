@@ -210,7 +210,7 @@ typedef enum {
     RANDOM,
     INJECT,
     ATV,
-    STRING,
+    END,
     CHAR,
     ARRAYF,
     EXPEL,
@@ -257,7 +257,7 @@ command getEnum(char *cmd) {
     if (strcmp(cmd, "rand") == 0) return RANDOM;
     if (strcmp(cmd, "inject") == 0) return INJECT;
     if (strcmp(cmd, "a->v") == 0) return ATV;
-    if (strcmp(cmd, "string") == 0) return STRING;
+    if (strcmp(cmd, "end") == 0) return END;
     if (strcmp(cmd, "char") == 0) return CHAR;
     if (strcmp(cmd, "arrayf") == 0) return ARRAYF;
     if (strcmp(cmd, "expel") == 0) return EXPEL;
@@ -546,7 +546,7 @@ char* getCorrelation(char* varName, char** resultantAsm){
         }
     }
 
-    for (int i = 0; i < stackNameList->size; i++){ // PAY ATTENTION: IF THE RESULT IS [EBP + X] MEANING IN STACK, YOU HAVE TO FREE THE RESULTANT STRING
+    for (int i = 0; i < stackNameList->size; i++){ // PAY ATTENTION: IF THE RESULT IS [EBP + X] MEANING IN STACK, YOU HAVE TO FREE THE RESULTANT END
         if (strcmp(stackNameList->data[i], varName) == 0){
             int j = i * 4;
             int size = snprintf(NULL, 0, "[ebp - %d]", j) + 1;
@@ -688,7 +688,7 @@ char* getSacrificialCorrelation(char* varName, char** resultantAsm){
         }
     }
 
-    for (int i = 0; i < stackNameList->size; i++){ // PAY ATTENTION: IF THE RESULT IS [EBP + X] MEANING IN STACK, YOU HAVE TO FREE THE RESULTANT STRING
+    for (int i = 0; i < stackNameList->size; i++){ // PAY ATTENTION: IF THE RESULT IS [EBP + X] MEANING IN STACK, YOU HAVE TO FREE THE RESULTANT END
         if (strcmp(stackNameList->data[i], varName) == 0){
             int j = i * 4;
             int size = snprintf(NULL, 0, "[ebp - %d]", j) + 1;
@@ -1390,7 +1390,7 @@ mov ebp, esp");
             removeString(stackNameList, getItemInStackIndex(getArrayName(arguments[0])));
             free(varToRemove);
             break;
-        } // delete ONE values from stack (EDIT THIS LATER FOR STRING EDITING TOO -- OR JUST MAKE A STRING "BUNDLE")
+        } // delete ONE values from stack (EDIT THIS LATER FOR END EDITING TOO -- OR JUST MAKE A END "BUNDLE")
         case ADD: {break;}
         case SUB: {break;}
         case MUL: {break;}
@@ -1414,7 +1414,11 @@ mov ebp, esp");
         case VMULF: {break;}
         case VDIVF: {break;}
         case CHAR: {break;} // treat like integer, literally just a byte
-        case STRING: {break;}
+        case END: {
+            append(&resultantAsm, "\nhlt");
+            break;
+            
+        }
         case EDIT: {break;}
         case PACK: {
 // char* asmConvert(char* currentCommand, char* currentArgument, int numArguments, char* packs[], char* packNames[], int numPacks, int* packsIndex){ // PAY ATTENTION: FREE THIS AFTER YOU CALL IT NO MATTER WHAT
